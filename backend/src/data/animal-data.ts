@@ -1,131 +1,116 @@
 export interface AnimalCharacter {
-  index: number;
+  number: number;
   animal: string;
-  color: string;
   character: string;
+  color: string;
+  group: 'SUN' | 'EARTH' | 'MOON';
   personality: string;
   compatibility: string;
 }
 
+// 動物占い 60キャラクター（キャラナンバー1-60）
+// 個性心理學に基づく公式キャラクターリスト
 export const animalCharacters: AnimalCharacter[] = [
-  // ライオン (0-4)
-  { index: 0, animal: 'ライオン', color: 'イエロー', character: '正直なライオン', personality: '嘘がつけない正直者で、誰に対しても堂々と意見を述べます。リーダーシップがあり、周囲から頼りにされる存在です。困っている人を放っておけない優しさも持っています。', compatibility: '穏やかなコジカ' },
-  { index: 1, animal: 'ライオン', color: 'グリーン', character: '気高いライオン', personality: '高い理想を持ち、常に上を目指して努力する向上心の持ち主です。プライドが高く、自分にも他人にも厳しい面がありますが、それは真剣に物事に向き合っている証です。', compatibility: '好奇心旺盛なサル' },
-  { index: 2, animal: 'ライオン', color: 'レッド', character: '情熱的なライオン', personality: '一度決めたことには全身全霊で取り組む情熱家です。その熱意は周囲の人をも巻き込み、大きな成果を生み出します。恋愛にも仕事にも一途な姿勢が魅力です。', compatibility: '社交的なタヌキ' },
-  { index: 3, animal: 'ライオン', color: 'ブルー', character: '冷静なライオン', personality: '知性と品格を兼ね備えた落ち着きのある人物です。感情に流されず、常に論理的な判断ができます。困難な状況でも冷静さを失わない頼もしい存在です。', compatibility: '直感力のあるペガサス' },
-  { index: 4, animal: 'ライオン', color: 'オレンジ', character: '華やかなライオン', personality: '天性の華やかさで場を明るくする太陽のような存在です。社交的で人を惹きつける魅力があり、どんな場所でも中心的な役割を果たします。寛容で器の大きい人柄です。', compatibility: '慎重なコアラ' },
+  // 1-10
+  { number: 1, animal: 'チータ', character: '長距離ランナーのチータ', color: 'イエロー', group: 'SUN', personality: '持久力があり、長期的な目標に向かって粘り強く走り続けることができるタイプです。瞬発力よりも継続力が武器で、コツコツと努力を重ねて大きな成果を手にします。', compatibility: '落ち着きのあるペガサス' },
+  { number: 2, animal: 'たぬき', character: '社交家のたぬき', color: 'グリーン', group: 'MOON', personality: '人付き合いが得意で、幅広い交友関係を持つ社交の達人です。どんな場でも場を和ませるユーモアがあり、愛されキャラとして周囲に親しまれています。', compatibility: '正直なこじか' },
+  { number: 3, animal: '猿', character: '落ち着きのない猿', color: 'レッド', group: 'EARTH', personality: '好奇心旺盛で常に動き回るエネルギッシュなタイプです。じっとしているのが苦手で、新しいことに次々と興味を持ちます。器用で何でもそつなくこなせる多才な人です。', compatibility: '我が道を行くライオン' },
+  { number: 4, animal: 'コアラ', character: 'フットワークの軽いコアラ', color: 'オレンジ', group: 'EARTH', personality: 'のんびりした外見とは裏腹に、フットワークが軽く行動的なタイプです。興味を持ったことにはすぐに飛びつく好奇心の持ち主で、意外と行動派な一面を持っています。', compatibility: '統率力のあるライオン' },
+  { number: 5, animal: '黒ひょう', character: '面倒見のいい黒ひょう', color: 'ブラウン', group: 'MOON', personality: '周囲への気配りが自然にでき、困っている人を放っておけない面倒見の良さがあります。クールな外見の中に温かい心を持ち、信頼される存在です。', compatibility: '長距離ランナーのチータ' },
+  { number: 6, animal: '虎', character: '愛情あふれる虎', color: 'ブラック', group: 'EARTH', personality: '深い愛情で周囲を包み込む温かい人柄の持ち主です。大切な人のためなら全力で尽くし、その献身的な姿勢が多くの人を惹きつけます。', compatibility: '社交家のたぬき' },
+  { number: 7, animal: 'チータ', character: '全力疾走するチータ', color: 'ゴールド', group: 'SUN', personality: '目標に向かって全速力で突っ走る情熱家です。スタートダッシュが得意で、やると決めたらすぐに行動に移す決断力があります。スピード感のある仕事ぶりで周囲を驚かせます。', compatibility: '強靭な翼をもつペガサス' },
+  { number: 8, animal: 'たぬき', character: '磨き上げられたたぬき', color: 'シルバー', group: 'MOON', personality: '努力を積み重ねて自分を磨き上げてきた洗練されたタイプです。見た目も中身も上品で、品格のある振る舞いが自然にできます。', compatibility: '強い意志をもったこじか' },
+  { number: 9, animal: '猿', character: '大きな志をもった猿', color: 'ブルー', group: 'EARTH', personality: '高い目標を掲げ、それに向かって努力を惜しまない志の高い人です。頭の回転が速く、戦略的に物事を進める知性派でもあります。', compatibility: 'デリケートなゾウ' },
+  { number: 10, animal: 'コアラ', character: '母性豊かなコアラ', color: 'パープル', group: 'EARTH', personality: '包容力があり、周囲の人を優しく包み込む母性的な存在です。困っている人にそっと手を差し伸べる思いやりの持ち主で、相談相手として最適です。', compatibility: 'リーダーとなるゾウ' },
 
-  // チータ (5-9)
-  { index: 5, animal: 'チータ', color: 'イエロー', character: '俊敏なチータ', personality: '頭の回転が速く、判断力に優れています。チャンスを逃さない嗅覚があり、素早く行動に移すことができます。スピード感のある仕事ぶりで周囲を驚かせます。', compatibility: '堅実なゾウ' },
-  { index: 6, animal: 'チータ', color: 'グリーン', character: '自由奔放なチータ', personality: '束縛を嫌い、自由を愛するマイペースな性格です。独自のセンスと感性を持ち、型にはまらない発想ができます。飽きっぽい面もありますが、本当に好きなことには驚くほどの集中力を発揮します。', compatibility: '繊細なクロヒョウ' },
-  { index: 7, animal: 'チータ', color: 'レッド', character: '負けず嫌いなチータ', personality: '強い競争心を持ち、常にトップを目指す努力家です。逆境に強く、プレッシャーがかかるほど実力を発揮します。負けた経験をバネに成長できる精神力の持ち主です。', compatibility: 'おおらかなヒツジ' },
-  { index: 8, animal: 'チータ', color: 'ブルー', character: '知的なチータ', personality: '鋭い観察力と分析力を持つ知性派です。物事の本質を見抜く目があり、的確なアドバイスができます。クールな外見とは裏腹に、内面には熱い情熱を秘めています。', compatibility: '正直なライオン' },
-  { index: 9, animal: 'チータ', color: 'オレンジ', character: '陽気なチータ', personality: '明るく楽天的で、周囲を笑顔にする天才です。コミュニケーション能力が高く、初対面の人ともすぐに打ち解けられます。困難な状況でもユーモアを忘れない前向きさが魅力です。', compatibility: '独立心の強いオオカミ' },
+  // 11-20
+  { number: 11, animal: 'こじか', character: '正直なこじか', color: 'イエロー', group: 'MOON', personality: '嘘がつけない素直で純粋な心の持ち主です。天真爛漫で飾らない性格が多くの人を惹きつけます。周囲の人を自然と笑顔にする不思議な力があります。', compatibility: '全力疾走するチータ' },
+  { number: 12, animal: 'ゾウ', character: '人気者のゾウ', color: 'グリーン', group: 'SUN', personality: '周囲から愛される人気者で、その場にいるだけで雰囲気が明るくなります。面倒見が良く、誰にでも分け隔てなく接する大らかさが魅力です。', compatibility: '磨き上げられたたぬき' },
+  { number: 13, animal: '狼', character: 'ネアカの狼', color: 'レッド', group: 'EARTH', personality: '一匹狼的な面がありながらも、根は明るく前向きなタイプです。独自の世界観を持ちつつ、ユーモアのセンスで周囲を楽しませます。', compatibility: '波乱に満ちたペガサス' },
+  { number: 14, animal: 'ひつじ', character: '協調性のないひつじ', color: 'オレンジ', group: 'MOON', personality: '自分の信念を大切にし、周囲に流されない芯の強さを持っています。「協調性がない」と見られることもありますが、それは自分の意見をしっかり持っている証です。', compatibility: '落ち着きのない猿' },
+  { number: 15, animal: '猿', character: 'どっしりとした猿', color: 'ブラウン', group: 'EARTH', personality: '猿の器用さに加えて、落ち着きと安定感を兼ね備えたタイプです。物事に動じない胆力があり、頼りがいのある存在として周囲から信頼されています。', compatibility: '感情的なライオン' },
+  { number: 16, animal: 'コアラ', character: 'コアラのなかのコアラ', color: 'ブラック', group: 'EARTH', personality: 'コアラの特徴を最も強く持つ純粋なコアラタイプです。のんびりマイペースで、自分のペースを崩さない穏やかさがあります。癒しのオーラで周囲をリラックスさせます。', compatibility: '傷つきやすいライオン' },
+  { number: 17, animal: 'こじか', character: '強い意志をもったこじか', color: 'ゴールド', group: 'MOON', personality: '可愛らしい見た目に反して、強い意志と決断力を持っています。一度決めたことは最後までやり遂げる粘り強さがあり、周囲を驚かせることもあります。', compatibility: '磨き上げられたたぬき' },
+  { number: 18, animal: 'ゾウ', character: 'デリケートなゾウ', color: 'シルバー', group: 'SUN', personality: '大きな体に繊細な心を持つ感受性豊かなタイプです。周囲の変化に敏感で、細やかな気配りができます。優しさの中に芯の強さを秘めています。', compatibility: '大きな志をもった猿' },
+  { number: 19, animal: '狼', character: '放浪の狼', color: 'ブルー', group: 'EARTH', personality: '自由を愛し、束縛を嫌う放浪者タイプです。独自の価値観で生き、型にはまらない発想ができます。一匹狼でありながらも、大切な人には深い愛情を注ぎます。', compatibility: '優雅なペガサス' },
+  { number: 20, animal: 'ひつじ', character: '物静かなひつじ', color: 'パープル', group: 'MOON', personality: '穏やかで控えめな佇まいの中に、深い思考力を秘めています。静かに物事を観察し、本質を見抜く力があります。信頼できる相談相手として周囲から慕われます。', compatibility: '大きな志をもった猿' },
 
-  // ペガサス (10-14)
-  { index: 10, animal: 'ペガサス', color: 'イエロー', character: '直感力のあるペガサス', personality: '天性の直感力で物事の流れを読み取る力があります。芸術的なセンスに優れ、独創的なアイデアを生み出します。自由な発想で周囲を驚かせることが多い天才肌です。', compatibility: '気分屋のサル' },
-  { index: 11, animal: 'ペガサス', color: 'グリーン', character: '優雅なペガサス', personality: '品格と優雅さを兼ね備えた魅力的な人物です。美意識が高く、生活の隅々にまで美しさを追求します。穏やかな物腰で人を安心させる落ち着きがあります。', compatibility: '華やかなライオン' },
-  { index: 12, animal: 'ペガサス', color: 'レッド', character: '冒険好きなペガサス', personality: '未知の世界への好奇心が強く、常に新しいことにチャレンジします。行動力が抜群で、思い立ったらすぐに動ける軽さがあります。旅や冒険を通じて人生を豊かにしていくタイプです。', compatibility: '勘の鋭いトラ' },
-  { index: 13, animal: 'ペガサス', color: 'ブルー', character: '神秘的なペガサス', personality: '不思議な魅力を持ち、周囲を惹きつけるオーラがあります。精神性が高く、目に見えないものの大切さを知っています。深い洞察力で物事の真相を見抜きます。', compatibility: '人情深いタヌキ' },
-  { index: 14, animal: 'ペガサス', color: 'オレンジ', character: '楽天的なペガサス', personality: '何事もポジティブに捉えられる明るい性格の持ち主です。失敗を恐れず、常に前を向いて歩く姿勢が周囲に勇気を与えます。天真爛漫な笑顔で人を癒す力があります。', compatibility: '温厚なヒツジ' },
+  // 21-30
+  { number: 21, animal: 'ペガサス', character: '落ち着きのあるペガサス', color: 'イエロー', group: 'SUN', personality: 'ペガサスの自由さに安定感が加わったバランスの取れたタイプです。直感力に優れながらも、地に足のついた判断ができます。穏やかなオーラで周囲に安心感を与えます。', compatibility: '長距離ランナーのチータ' },
+  { number: 22, animal: 'ペガサス', character: '強靭な翼をもつペガサス', color: 'グリーン', group: 'SUN', personality: '困難な状況でも力強く飛び立てるタフな精神力の持ち主です。逆境に強く、プレッシャーがかかるほど実力を発揮します。大きな夢を実現する力があります。', compatibility: '全力疾走するチータ' },
+  { number: 23, animal: 'ひつじ', character: '無邪気なひつじ', color: 'レッド', group: 'MOON', personality: '天真爛漫で純粋な心を持つ愛される存在です。素直な感情表現が魅力で、周囲を和ませる笑顔の持ち主です。子どものような好奇心で日々を楽しみます。', compatibility: 'ネアカの狼' },
+  { number: 24, animal: '狼', character: 'クリエイティブな狼', color: 'オレンジ', group: 'EARTH', personality: '独創的な発想力を持つクリエイタータイプです。既成概念にとらわれず、ユニークなアイデアを次々と生み出します。芸術的センスに優れた表現者です。', compatibility: '華やかなこじか' },
+  { number: 25, animal: '狼', character: '穏やかな狼', color: 'ブラウン', group: 'EARTH', personality: '狼の独立心を持ちながらも、穏やかで優しい人柄です。争いを好まず、調和を大切にします。一人の時間と人との交流のバランスを上手に取れるタイプです。', compatibility: 'しっかり者のこじか' },
+  { number: 26, animal: 'ひつじ', character: '粘り強いひつじ', color: 'ブラック', group: 'MOON', personality: '優しい見た目の裏に強い忍耐力を秘めています。困難な状況でも諦めず、コツコツと努力を続けることができます。目標達成まで粘り強く取り組む頑張り屋です。', compatibility: 'クリエイティブな狼' },
+  { number: 27, animal: 'ペガサス', character: '波乱に満ちたペガサス', color: 'ゴールド', group: 'SUN', personality: '波乱万丈の人生を自ら選び、刺激的な毎日を楽しむタイプです。退屈を嫌い、常に新しいチャレンジを求めます。その行動力と発想力で周囲を驚かせます。', compatibility: 'ネアカの狼' },
+  { number: 28, animal: 'ペガサス', character: '優雅なペガサス', color: 'シルバー', group: 'SUN', personality: '品格と優雅さを兼ね備えた魅力的な人物です。美意識が高く、生活の隅々にまで美しさを追求します。穏やかな物腰で人を安心させる落ち着きがあります。', compatibility: '放浪の狼' },
+  { number: 29, animal: 'ひつじ', character: 'チャレンジ精神旺盛なひつじ', color: 'ブルー', group: 'MOON', personality: 'ひつじの穏やかさに冒険心が加わった積極的なタイプです。新しいことへの挑戦を楽しみ、失敗を恐れず前に進む勇気があります。', compatibility: '穏やかな狼' },
+  { number: 30, animal: '狼', character: '順応性のある狼', color: 'パープル', group: 'EARTH', personality: '狼の独立心を保ちながらも、環境への適応力に優れたタイプです。どんな状況でも柔軟に対応でき、自分のスタイルを崩さずに周囲と調和できます。', compatibility: 'チャレンジ精神旺盛なひつじ' },
 
-  // ゾウ (15-19)
-  { index: 15, animal: 'ゾウ', color: 'イエロー', character: '堅実なゾウ', personality: '一歩一歩着実に前進する努力家で、コツコツと成果を積み上げます。安定志向で計画性があり、長期的な目標を達成する力があります。信頼性の高い人柄です。', compatibility: '知的なチータ' },
-  { index: 16, animal: 'ゾウ', color: 'グリーン', character: '頼られるゾウ', personality: '包容力があり、困っている人を見過ごせない面倒見の良さがあります。責任感が強く、任された仕事は最後まで確実にやり遂げます。頼りがいのある存在として周囲から慕われます。', compatibility: '自由奔放なチータ' },
-  { index: 17, animal: 'ゾウ', color: 'レッド', character: '意志の強いゾウ', personality: '一度決めたことは何があってもやり遂げる強い意志の持ち主です。困難な状況でも諦めず、粘り強く取り組みます。その姿勢は周囲の人に大きな感動と勇気を与えます。', compatibility: '俊敏なチータ' },
-  { index: 18, animal: 'ゾウ', color: 'ブルー', character: '思慮深いゾウ', personality: '深く考えてから行動する慎重派です。物事を多角的に分析する能力に優れ、見落としがほとんどありません。知恵者として周囲からの信頼が厚いです。', compatibility: '冒険好きなペガサス' },
-  { index: 19, animal: 'ゾウ', color: 'オレンジ', character: '温かいゾウ', personality: '心の広さと温かさで周囲の人を包み込む優しい人です。争いを好まず、調和を大切にします。さりげない気配りで人の心を癒す力を持っています。', compatibility: '甘え上手なコジカ' },
+  // 31-40
+  { number: 31, animal: 'ゾウ', character: 'リーダーとなるゾウ', color: 'イエロー', group: 'SUN', personality: '生まれながらのリーダー気質で、周囲を力強く導く存在です。責任感が強く、任された役割は確実にやり遂げます。包容力のある頼もしいリーダーです。', compatibility: '母性豊かなコアラ' },
+  { number: 32, animal: 'こじか', character: 'しっかり者のこじか', color: 'グリーン', group: 'MOON', personality: '可愛らしい外見に反して、しっかりとした考えを持つ堅実なタイプです。計画性があり、着実に目標を達成していきます。頼りになる存在として周囲から信頼されています。', compatibility: '穏やかな狼' },
+  { number: 33, animal: 'コアラ', character: '活動的なコアラ', color: 'レッド', group: 'EARTH', personality: 'コアラのイメージを覆すほどアクティブで行動的なタイプです。興味を持ったことにはどんどん挑戦し、その行動力で周囲を驚かせます。', compatibility: 'まっしぐらに突き進むゾウ' },
+  { number: 34, animal: '猿', character: '気分屋の猿', color: 'オレンジ', group: 'EARTH', personality: 'その日の気分によって行動が変わるムードメーカーです。好奇心が旺盛で、常に新しいことに興味を持ちます。器用で何でもそつなくこなせる多才な人です。', compatibility: '華やかなこじか' },
+  { number: 35, animal: 'ひつじ', character: '頼られると嬉しいひつじ', color: 'ブラウン', group: 'MOON', personality: '人の役に立つことに喜びを感じるタイプです。頼られると張り切って全力で応えようとします。面倒見が良く、周囲から頼りにされる存在です。', compatibility: '活動的なコアラ' },
+  { number: 36, animal: '狼', character: '好感のもたれる狼', color: 'ブラック', group: 'EARTH', personality: '狼の独立心を持ちながらも、誰からも好かれる親しみやすさがあります。自然体でありながら周囲への配慮もでき、バランス感覚に優れています。', compatibility: '頼られると嬉しいひつじ' },
+  { number: 37, animal: 'ゾウ', character: 'まっしぐらに突き進むゾウ', color: 'ゴールド', group: 'SUN', personality: '目標に向かって一直線に突き進む力強い行動派です。迷いなく前に進む姿勢が周囲に勇気を与えます。一度決めたことは何があってもやり遂げる意志の強さがあります。', compatibility: '活動的なコアラ' },
+  { number: 38, animal: 'こじか', character: '華やかなこじか', color: 'シルバー', group: 'MOON', personality: '天性の華やかさで場を明るくする存在です。社交的で人を惹きつける魅力があり、どんな場所でも注目を集めます。純粋な心と華やかなオーラが魅力です。', compatibility: 'クリエイティブな狼' },
+  { number: 39, animal: 'コアラ', character: '夢とロマンのコアラ', color: 'ブルー', group: 'EARTH', personality: '夢見がちなロマンチストで、美しいものや感動的な出来事に心を奪われます。想像力が豊かで、クリエイティブな才能を秘めています。', compatibility: 'リーダーとなるゾウ' },
+  { number: 40, animal: '猿', character: '尽くす猿', color: 'パープル', group: 'EARTH', personality: '大切な人のために惜しみなく尽くす献身的なタイプです。器用さを活かして周囲をサポートし、縁の下の力持ちとして活躍します。', compatibility: '人気者のゾウ' },
 
-  // サル (20-24)
-  { index: 20, animal: 'サル', color: 'イエロー', character: '気分屋のサル', personality: 'その日の気分によって行動が変わるムードメーカーです。好奇心が旺盛で、常に新しいことに興味を持ちます。器用で何でもそつなくこなせる多才な人です。', compatibility: '神秘的なペガサス' },
-  { index: 21, animal: 'サル', color: 'グリーン', character: '好奇心旺盛なサル', personality: '知りたがり屋で、さまざまな分野に精通している博学な人です。学ぶことが大好きで、新しい知識をどんどん吸収します。ユーモアのセンスも抜群です。', compatibility: '気高いライオン' },
-  { index: 22, animal: 'サル', color: 'レッド', character: '世渡り上手なサル', personality: '人間関係の構築が得意で、どんな環境でもうまく立ち回れる柔軟性があります。相手の気持ちを敏感に察する能力に優れ、場の空気を読むのが上手です。', compatibility: 'ロマンチストなコジカ' },
-  { index: 23, animal: 'サル', color: 'ブルー', character: '策略家のサル', personality: '緻密な計画を立て、戦略的に物事を進める頭脳派です。先を読む力があり、効率よく目標を達成します。冷静な判断力で周囲をリードする知恵者です。', compatibility: '冷静なライオン' },
-  { index: 24, animal: 'サル', color: 'オレンジ', character: '愛嬌のあるサル', personality: '誰からも愛される天性の愛嬌の持ち主です。場を和ませるユーモアセンスがあり、周囲を笑顔にする力があります。人懐っこさの中にも鋭い観察眼を持っています。', compatibility: '優雅なペガサス' },
+  // 41-50
+  { number: 41, animal: 'たぬき', character: '大器晩成のたぬき', color: 'イエロー', group: 'MOON', personality: '若い頃は目立たなくても、年齢を重ねるごとに魅力が増していくタイプです。じっくりと経験を積み上げ、やがて大きな花を咲かせます。', compatibility: '足腰の強いチータ' },
+  { number: 42, animal: 'チータ', character: '足腰の強いチータ', color: 'グリーン', group: 'SUN', personality: 'スピードだけでなく、安定した土台を持つバランスの取れたチータです。持久力があり、長期戦にも強い粘りを見せます。', compatibility: '大器晩成のたぬき' },
+  { number: 43, animal: '虎', character: '動きまわる虎', color: 'レッド', group: 'EARTH', personality: 'じっとしていられない活動的な虎です。好奇心旺盛で行動力があり、常に新しい刺激を求めて動き回ります。そのエネルギッシュさで周囲を巻き込みます。', compatibility: '面倒見のいい黒ひょう' },
+  { number: 44, animal: '黒ひょう', character: '情熱的な黒ひょう', color: 'オレンジ', group: 'MOON', personality: 'クールな外見の中に熱い情熱を秘めたタイプです。ここぞという場面で内に秘めた炎を燃やし、圧倒的な成果を出します。', compatibility: '動きまわる虎' },
+  { number: 45, animal: 'コアラ', character: 'サービス精神旺盛なコアラ', color: 'ブラウン', group: 'EARTH', personality: '人を喜ばせることが大好きなサービス精神の塊です。おもてなし上手で、周囲を楽しませるアイデアが次々と浮かんできます。', compatibility: '感情豊かな黒ひょう' },
+  { number: 46, animal: '猿', character: '守りの猿', color: 'ブラック', group: 'EARTH', personality: '大切なものを守る力に優れた防御型の猿です。慎重で用心深く、リスク管理が得意です。安定を重視し、確実な道を選んで進みます。', compatibility: '気どらない黒ひょう' },
+  { number: 47, animal: 'たぬき', character: '人間味あふれるたぬき', color: 'ゴールド', group: 'MOON', personality: '人情に厚く、義理人情を大切にする心の温かい人です。飾らない自然体の人柄が多くの人を惹きつけます。困った人を見過ごせない優しさがあります。', compatibility: '品格のあるチータ' },
+  { number: 48, animal: 'チータ', character: '品格のあるチータ', color: 'シルバー', group: 'SUN', personality: 'スピードと品格を兼ね備えたエレガントなチータです。行動力がありながらも上品な振る舞いができ、周囲から一目置かれる存在です。', compatibility: '人間味あふれるたぬき' },
+  { number: 49, animal: '虎', character: '楽天的な虎', color: 'ブルー', group: 'EARTH', personality: '虎の力強さに明るい楽天性が加わったポジティブなタイプです。困難な状況でも前向きな姿勢を崩さず、その明るさで周囲に元気を与えます。', compatibility: '情熱的な黒ひょう' },
+  { number: 50, animal: '黒ひょう', character: '落ち込みの激しい黒ひょう', color: 'パープル', group: 'MOON', personality: '感受性が豊かで、喜びも悲しみも人一倍深く感じるタイプです。繊細な感性は芸術的な才能にもつながり、創造性に優れています。', compatibility: '楽天的な虎' },
 
-  // オオカミ (25-29)
-  { index: 25, animal: 'オオカミ', color: 'イエロー', character: '独立心の強いオオカミ', personality: '自分の信念を貫く強い意志を持ち、他人に流されない芯の強さがあります。一匹狼的な面がありますが、大切な人にはとことん忠実です。独自の世界観を持っています。', compatibility: '陽気なチータ' },
-  { index: 26, animal: 'オオカミ', color: 'グリーン', character: '誠実なオオカミ', personality: '嘘やごまかしを嫌い、真実を追求する誠実な人です。約束は必ず守り、言ったことには責任を持ちます。信頼関係を何よりも大切にする義理堅い性格です。', compatibility: '楽天的なペガサス' },
-  { index: 27, animal: 'オオカミ', color: 'レッド', character: '情に厚いオオカミ', personality: '仲間を大切にし、深い愛情で接する情の深い人です。表面的な付き合いは苦手ですが、一度心を許した相手には惜しみない愛情を注ぎます。義理人情に篤い性格です。', compatibility: '堅実なゾウ' },
-  { index: 28, animal: 'オオカミ', color: 'ブルー', character: '孤高のオオカミ', personality: '群れることを好まず、自分だけの道を歩む孤高の存在です。深い知性と鋭い洞察力を持ち、本質を見抜く目があります。少数精鋭の人間関係を大切にします。', compatibility: '意志の強いゾウ' },
-  { index: 29, animal: 'オオカミ', color: 'オレンジ', character: '遊び心のあるオオカミ', personality: '普段はクールですが、心を許した人の前では遊び心あふれる一面を見せます。ギャップのある魅力で周囲を惹きつけます。センスが良く、独自のスタイルを持っています。', compatibility: '思慮深いゾウ' },
-
-  // コアラ (30-34)
-  { index: 30, animal: 'コアラ', color: 'イエロー', character: '慎重なコアラ', personality: 'じっくりと考えてから行動する慎重派で、失敗が少ない堅実なタイプです。安全な道を選びながらも確実に目標を達成していきます。計画性があり段取り上手です。', compatibility: '華やかなライオン' },
-  { index: 31, animal: 'コアラ', color: 'グリーン', character: 'マイペースなコアラ', personality: '自分のペースを崩さない穏やかな性格です。周囲に流されず、自分らしさを大切にします。急かされるのは苦手ですが、自分のリズムで確実に成果を出します。', compatibility: '誠実なオオカミ' },
-  { index: 32, animal: 'コアラ', color: 'レッド', character: '情熱を秘めたコアラ', personality: '穏やかな外見とは裏腹に、内面には熱い情熱を秘めています。ここぞという場面では大胆な行動に出ることもあります。普段の温厚さとのギャップが魅力です。', compatibility: '負けず嫌いなチータ' },
-  { index: 33, animal: 'コアラ', color: 'ブルー', character: '知的好奇心のコアラ', personality: '知識欲が旺盛で、幅広い分野に興味を持つ勉強家です。コツコツと知識を蓄え、専門性を高めます。穏やかな語り口で知恵を分かち合う心の広さがあります。', compatibility: '情熱的なライオン' },
-  { index: 34, animal: 'コアラ', color: 'オレンジ', character: '癒し系のコアラ', personality: '一緒にいるだけで心が安らぐ癒し系の存在です。優しい雰囲気で周囲の緊張をほぐし、場を和ませます。聞き上手で相談相手として最適な人柄です。', compatibility: '世渡り上手なサル' },
-
-  // トラ (35-39)
-  { index: 35, animal: 'トラ', color: 'イエロー', character: '勘の鋭いトラ', personality: '直感力が鋭く、危険やチャンスをいち早く察知します。第六感が働くタイプで、大事な場面での判断力は抜群です。観察力にも優れ、人の本心を見抜く力があります。', compatibility: '冒険好きなペガサス' },
-  { index: 36, animal: 'トラ', color: 'グリーン', character: '慈悲深いトラ', personality: '強さの中に優しさを持つバランスの取れた人物です。弱い立場の人を守ろうとする正義感があります。厳しさと優しさを使い分けられる懐の深い人柄です。', compatibility: '愛嬌のあるサル' },
-  { index: 37, animal: 'トラ', color: 'レッド', character: '威風堂々のトラ', personality: '存在感があり、その場にいるだけで周囲を圧倒する威厳を持っています。自信に満ちた態度で人を安心させ、困難な状況でも動じない胆力があります。', compatibility: '頼られるゾウ' },
-  { index: 38, animal: 'トラ', color: 'ブルー', character: '沈着冷静なトラ', personality: '感情に振り回されず、常に冷静な判断ができるクールな知性派です。大局観を持ち、物事を俯瞰的に捉えることができます。参謀役として非常に優秀です。', compatibility: '独立心の強いオオカミ' },
-  { index: 39, animal: 'トラ', color: 'オレンジ', character: '親分肌のトラ', personality: '面倒見が良く、仲間のために尽くす親分肌の人物です。頼り甲斐があり、困った時に相談したくなる包容力があります。豪快な性格で細かいことにこだわりません。', compatibility: '温かいゾウ' },
-
-  // クロヒョウ (40-44)
-  { index: 40, animal: 'クロヒョウ', color: 'イエロー', character: '繊細なクロヒョウ', personality: '感受性が豊かで、周囲の変化に敏感に反応します。繊細な感性を活かして芸術やクリエイティブな分野で力を発揮します。細やかな気配りができる優しい人です。', compatibility: '自由奔放なチータ' },
-  { index: 41, animal: 'クロヒョウ', color: 'グリーン', character: 'ミステリアスなクロヒョウ', personality: '謎めいた魅力で周囲を惹きつける不思議な存在です。多くを語らず、行動で示すタイプです。内面に豊かな感情世界を持ち、信頼した人にだけ本心を見せます。', compatibility: '孤高のオオカミ' },
-  { index: 42, animal: 'クロヒョウ', color: 'レッド', character: '闘志あふれるクロヒョウ', personality: '表には出さないものの、内に秘めた闘志は誰にも負けません。ここぞという場面で底力を発揮するタイプです。静かな強さで困難を乗り越えていきます。', compatibility: '威風堂々のトラ' },
-  { index: 43, animal: 'クロヒョウ', color: 'ブルー', character: '洞察力のあるクロヒョウ', personality: '鋭い洞察力で物事の裏側まで見通す力があります。論理的思考と直感のバランスが良く、正確な判断を下せます。静かな佇まいの中に深い知性が光ります。', compatibility: '策略家のサル' },
-  { index: 44, animal: 'クロヒョウ', color: 'オレンジ', character: '華麗なクロヒョウ', personality: 'エレガントな雰囲気を持ち、洗練されたセンスで周囲を魅了します。美意識が高く、何事にもスタイリッシュにこなします。内面の情熱と外見の優雅さのギャップが魅力です。', compatibility: '遊び心のあるオオカミ' },
-
-  // ヒツジ (45-49)
-  { index: 45, animal: 'ヒツジ', color: 'イエロー', character: '温厚なヒツジ', personality: '穏やかで争いを好まない平和主義者です。誰にでも優しく接し、周囲に安心感を与えます。協調性が高く、チームの潤滑油的な存在として欠かせない人です。', compatibility: '楽天的なペガサス' },
-  { index: 46, animal: 'ヒツジ', color: 'グリーン', character: 'おおらかなヒツジ', personality: '細かいことにこだわらない大らかな性格で、心が広い人です。他人の失敗も笑って許せる寛容さがあります。ゆったりとした雰囲気で周囲をリラックスさせます。', compatibility: '負けず嫌いなチータ' },
-  { index: 47, animal: 'ヒツジ', color: 'レッド', character: '芯の強いヒツジ', personality: '優しい見た目の裏に、しっかりとした芯の強さを持っています。自分の意見をしっかり持ちつつ、相手を尊重することもできます。柔よく剛を制すタイプです。', compatibility: '勘の鋭いトラ' },
-  { index: 48, animal: 'ヒツジ', color: 'ブルー', character: '思いやりのヒツジ', personality: '周囲への気配りが自然にできる優しい人です。相手の気持ちに寄り添い、的確な言葉で励ますことができます。控えめながらも、いざという時に頼りになる存在です。', compatibility: '慎重なコアラ' },
-  { index: 49, animal: 'ヒツジ', color: 'オレンジ', character: '社交的なヒツジ', personality: '人との交流が大好きで、誰とでも仲良くなれる親しみやすさがあります。パーティーやイベントの企画が得意で、人を集める力があります。明るい笑顔で場を盛り上げます。', compatibility: '癒し系のコアラ' },
-
-  // タヌキ (50-54)
-  { index: 50, animal: 'タヌキ', color: 'イエロー', character: '人情深いタヌキ', personality: '義理人情を大切にする心の温かい人です。困っている人を見過ごせず、自分のことよりも人のために動く奉仕精神があります。仲間からの信頼が非常に厚いです。', compatibility: '神秘的なペガサス' },
-  { index: 51, animal: 'タヌキ', color: 'グリーン', character: '社交的なタヌキ', personality: '人付き合いが上手で、幅広い交友関係を持っています。どんな場でも場を和ませるユーモアがあり、愛されキャラとして周囲に親しまれています。人脈が大きな財産です。', compatibility: '情熱的なライオン' },
-  { index: 52, animal: 'タヌキ', color: 'レッド', character: '行動派のタヌキ', personality: '考えるよりも先に体が動く行動派です。思い立ったらすぐに実行する機動力があり、その行動力で次々と新しい道を切り開きます。失敗を恐れない勇気の持ち主です。', compatibility: '直感力のあるペガサス' },
-  { index: 53, animal: 'タヌキ', color: 'ブルー', character: '知恵者のタヌキ', personality: '豊富な経験と知識に裏打ちされた知恵を持つ参謀役です。困難な問題も柔軟な発想で解決策を見つけ出します。物腰は柔らかく、的確なアドバイスで周囲を導きます。', compatibility: '繊細なクロヒョウ' },
-  { index: 54, animal: 'タヌキ', color: 'オレンジ', character: '楽天家のタヌキ', personality: 'どんな状況でも前向きに捉えられるポジティブシンキングの達人です。笑顔を絶やさず、周囲に元気と活力を与えます。逆境でもユーモアを忘れない強さがあります。', compatibility: '沈着冷静なトラ' },
-
-  // コジカ (55-59)
-  { index: 55, animal: 'コジカ', color: 'イエロー', character: '穏やかなコジカ', personality: '天真爛漫で純粋な心を持つ愛される存在です。周囲の人を自然と笑顔にする不思議な力があります。素直で飾らない性格が多くの人を惹きつけます。', compatibility: '正直なライオン' },
-  { index: 56, animal: 'コジカ', color: 'グリーン', character: 'ロマンチストなコジカ', personality: '夢見がちなロマンチストで、美しいものや感動的な出来事に心を奪われます。想像力が豊かで、クリエイティブな才能を秘めています。純粋な感性が魅力です。', compatibility: '世渡り上手なサル' },
-  { index: 57, animal: 'コジカ', color: 'レッド', character: '負けん気の強いコジカ', personality: '可愛らしい見た目に反して、負けん気が強く競争心旺盛です。小さな体に大きな志を持ち、コツコツと努力を重ねて目標を達成します。芯のある頑張り屋です。', compatibility: '慈悲深いトラ' },
-  { index: 58, animal: 'コジカ', color: 'ブルー', character: '甘え上手なコジカ', personality: '自然体で人に甘えることができ、周囲の保護本能をくすぐる魅力があります。頼り上手で人間関係を円滑にする天性の才能があります。素直さが最大の武器です。', compatibility: '温かいゾウ' },
-  { index: 59, animal: 'コジカ', color: 'オレンジ', character: '元気いっぱいのコジカ', personality: 'エネルギーに満ち溢れた活発な性格で、常に動き回っています。好奇心が旺盛で新しい発見を楽しむ冒険者です。無邪気な笑顔で周囲を明るくする太陽のような存在です。', compatibility: '親分肌のトラ' },
+  // 51-60
+  { number: 51, animal: 'ライオン', character: '我が道を行くライオン', color: 'イエロー', group: 'SUN', personality: '自分の信念を貫き、我が道を堂々と歩む王者の風格を持っています。他人に流されず、独自の判断で行動できる芯の強さがあります。', compatibility: '順応性のある狼' },
+  { number: 52, animal: 'ライオン', character: '統率力のあるライオン', color: 'グリーン', group: 'SUN', personality: '生まれながらのリーダーで、周囲を自然とまとめ上げる統率力があります。カリスマ性があり、その言葉には説得力があります。責任感も強いです。', compatibility: 'フットワークの軽いコアラ' },
+  { number: 53, animal: '黒ひょう', character: '感情豊かな黒ひょう', color: 'レッド', group: 'MOON', personality: '豊かな感情表現が魅力的なタイプです。喜怒哀楽がはっきりしていて、その素直な感情が周囲の心を動かします。共感力に優れた感性の持ち主です。', compatibility: 'サービス精神旺盛なコアラ' },
+  { number: 54, animal: '虎', character: 'ゆったりとした悠然の虎', color: 'オレンジ', group: 'EARTH', personality: '虎の力強さを持ちながらも、ゆったりとした余裕のある佇まいが特徴です。急がず焦らず、自分のペースで物事を進める大物感があります。', compatibility: '感情豊かな黒ひょう' },
+  { number: 55, animal: '虎', character: 'パワフルな虎', color: 'ブラウン', group: 'EARTH', personality: '圧倒的なパワーとエネルギーの持ち主です。どんな困難も力で押し切る強さがあり、その存在感で周囲を圧倒します。行動力と実行力が抜群です。', compatibility: '束縛を嫌う黒ひょう' },
+  { number: 56, animal: '黒ひょう', character: '気どらない黒ひょう', color: 'ブラック', group: 'MOON', personality: '飾らない自然体の魅力を持つ黒ひょうです。気取らない人柄で誰からも親しまれ、センスの良さが自然ににじみ出ています。', compatibility: '守りの猿' },
+  { number: 57, animal: 'ライオン', character: '感情的なライオン', color: 'ゴールド', group: 'SUN', personality: '感情表現が豊かで、喜怒哀楽をストレートに表すタイプです。情熱的で愛情深く、大切な人に対しては惜しみない愛情を注ぎます。', compatibility: 'どっしりとした猿' },
+  { number: 58, animal: 'ライオン', character: '傷つきやすいライオン', color: 'シルバー', group: 'SUN', personality: '王者の風格の中に繊細な心を持つタイプです。プライドが高い一方で傷つきやすく、周囲の評価を気にする一面があります。その繊細さが深い思慮につながっています。', compatibility: 'コアラのなかのコアラ' },
+  { number: 59, animal: '黒ひょう', character: '束縛を嫌う黒ひょう', color: 'ブルー', group: 'MOON', personality: '自由を愛し、束縛されることを何よりも嫌うタイプです。独立心が強く、自分のペースで生きることを大切にします。ミステリアスな魅力で周囲を惹きつけます。', compatibility: 'パワフルな虎' },
+  { number: 60, animal: '虎', character: '慈悲深い虎', color: 'パープル', group: 'EARTH', personality: '強さの中に深い慈悲の心を持つタイプです。弱い立場の人を守り、困っている人に手を差し伸べる正義感があります。厳しさと優しさを使い分けられる人格者です。', compatibility: '落ち込みの激しい黒ひょう' },
 ];
 
 export const animalAdvice: string[] = [
-  'あなたの動物キャラクターの強みを活かせば、今日の課題も必ず乗り越えられます。自分らしさを大切にしましょう。',
-  '動物の本能に従って、直感を信じて行動してみましょう。思わぬ幸運が舞い込むかもしれません。',
-  '相性の良い動物キャラクターの人と過ごすと、エネルギーが高まります。大切な人との時間を作りましょう。',
-  'あなたの動物が持つ色のアイテムを身につけると、運気がアップします。ファッションに取り入れてみてください。',
-  '群れの力を借りる時です。一人で抱え込まず、周囲の仲間に助けを求めましょう。協力が大きな成果を生みます。',
-  '今日は内なる野生の力が高まっています。新しいことに挑戦するのに最適な日です。一歩踏み出してみましょう。',
-  '動物キャラクター同士の相性を意識して、人間関係を見直すと良い発見があるかもしれません。',
+  'あなたのキャラクターの強みを活かして、今日の課題にも自信を持って取り組みましょう。自分らしさが最大の武器です。',
+  '直感を信じて行動してみましょう。動物占いが示すあなたの本質は、正しい方向を指し示しています。',
+  '相性の良いキャラクターの人と過ごすと、エネルギーが高まります。大切な人との時間を作りましょう。',
+  'あなたのカラーのアイテムを身につけると、運気がアップします。ファッションに取り入れてみてください。',
+  '今日はチームワークが大切な日です。一人で抱え込まず、周囲の仲間に助けを求めましょう。協力が大きな成果を生みます。',
+  '新しいことに挑戦するのに最適な日です。あなたの内なるエネルギーが高まっています。一歩踏み出してみましょう。',
+  '人間関係を見直すと良い発見があるかもしれません。動物占いの相性を参考に、新しいつながりを作ってみましょう。',
   '自然の中で過ごすと、あなたの動物キャラクターのパワーが充電されます。散歩や公園でのリフレッシュがおすすめです。',
   '今日のラッキーポイントは「食」です。旬の食材を楽しんで、体の中からエネルギーを満たしましょう。',
-  'あなたの動物キャラクターは今、成長期に入っています。新しい学びやスキルアップに力を注ぐと良いでしょう。',
-  '直感が冴えている日です。ふと思い浮かんだアイデアや考えをメモしておくと、後で役に立ちます。',
-  '今日は心の休息が必要な日です。無理をせず、自分のペースで過ごすことで明日への活力が生まれます。',
+  '新しい学びやスキルアップに力を注ぐと良いでしょう。成長期に入っているあなたの可能性は無限大です。',
+  '直感が冴えている日です。ふと思い浮かんだアイデアをメモしておくと、後で役に立つでしょう。',
+  '心の休息が必要な日です。無理をせず、自分のペースで過ごすことで明日への活力が生まれます。',
   'コミュニケーション運が上昇中です。普段話さない人にも声をかけてみると、新しいつながりが生まれるでしょう。',
   '過去の経験が今のあなたを支えています。自信を持って決断してください。あなたの選択は正しい方向に向かっています。',
-  '動物キャラクターの仲間意識を大切に。感謝の気持ちを言葉にして伝えると、関係がさらに深まります。',
+  '感謝の気持ちを言葉にして伝えると、人間関係がさらに深まります。小さな「ありがとう」が大きな力になります。',
 ];
 
-// Helper to compute day-of-year for a given MM-DD string
-function generateBirthdayToAnimalIndex(): Record<string, number> {
-  const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const result: Record<string, number> = {};
-  let dayOfYear = 0;
+// グループの相性関係: MOON > EARTH > SUN > MOON
+export const groupNames: Record<string, string> = {
+  SUN: '太陽グループ',
+  EARTH: '地球グループ',
+  MOON: '月グループ',
+};
 
-  for (let month = 1; month <= 12; month++) {
-    for (let day = 1; day <= daysInMonth[month - 1]; day++) {
-      const key = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      result[key] = dayOfYear % 60;
-      dayOfYear++;
-    }
-  }
-
-  return result;
-}
-
-export const birthdayToAnimalIndex: Record<string, number> = generateBirthdayToAnimalIndex();
+export const groupDescriptions: Record<string, string> = {
+  SUN: '権威を好み、尊敬されたい。自分軸で行動する状況対応型',
+  EARTH: '合理的で無駄を嫌う。自分のペースを大切にする',
+  MOON: '人との関わりを大切にする。他者軸で考える',
+};

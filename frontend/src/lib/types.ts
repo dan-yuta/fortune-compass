@@ -127,6 +127,8 @@ export interface AnimalResult {
   animal: string;
   color: string;
   character: string;
+  group: string;
+  groupDescription: string;
   personality: string;
   score: number;
   compatibility: string;

@@ -50,6 +50,15 @@ export default function AnimalPage() {
       </div>
 
       <div className="space-y-4">
+        <ResultCard title="グループ">
+          <p className="text-text-primary font-semibold mb-1">
+            {result.group}
+          </p>
+          <p className="text-text-secondary leading-relaxed">
+            {result.groupDescription}
+          </p>
+        </ResultCard>
+
         <ResultCard title="今日の運勢">
           <ScoreDisplay score={result.score} />
         </ResultCard>
