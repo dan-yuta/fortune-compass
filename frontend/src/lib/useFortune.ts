@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { loadProfile, hasProfile } from "@/lib/storage";
 import { UserProfile } from "@/lib/types";
+import { saveToHistory, FortuneResult } from "@/lib/history";
 
 interface UseFortuneOptions<T> {
   fetcher: (profile: UserProfile) => Promise<T>;
@@ -31,6 +32,7 @@ export function useFortune<T>({ fetcher, requireBloodType = false }: UseFortuneO
     try {
       const data = await fetcher(p);
       setResult(data);
+      saveToHistory(data as FortuneResult);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "占い結果の取得に失敗しました"

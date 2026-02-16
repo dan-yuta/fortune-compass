@@ -55,7 +55,7 @@
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │                  localStorage                         │  │
-│  │              プロフィール永続化                         │  │
+│  │         プロフィール永続化 + 占い履歴保存               │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -147,9 +147,13 @@ fortune-compass/
         │   ├── not-found.tsx     # カスタム404ページ
         │   ├── opengraph-image.tsx # 動的OG画像生成
         │   ├── globals.css       # デザインシステム定義
+        │   ├── sitemap.ts       # 動的sitemap.xml生成
+        │   ├── robots.ts        # robots.txt生成
         │   ├── health/           # ヘルスチェック
         │   ├── profile/
         │   │   └── page.tsx      # プロフィール入力
+        │   ├── history/
+        │   │   └── page.tsx      # 占い履歴一覧
         │   └── fortune/
         │       ├── page.tsx      # 占術選択
         │       ├── zodiac/       # 星座占い結果
@@ -168,13 +172,16 @@ fortune-compass/
         │       ├── ScoreDisplay.tsx
         │       ├── LoadingState.tsx
         │       ├── ErrorState.tsx
-        │       └── ResultCard.tsx
+        │       ├── ResultCard.tsx
+        │       ├── OtherFortunes.tsx  # 他占術へのショートカット
+        │       └── ShareButtons.tsx   # SNSシェアボタン
         └── lib/
             ├── types.ts          # 型定義
-            ├── storage.ts        # localStorage管理
+            ├── storage.ts        # localStorage管理 (プロフィール)
+            ├── history.ts        # localStorage管理 (占い履歴)
             ├── api-client.ts     # API呼び出し
-            ├── useFortune.ts     # 占い共通フック
-            ├── kana-to-romaji.ts # カタカナ→ローマ字変換
+            ├── useFortune.ts     # 占い共通フック (結果自動保存)
+            ├── kana-to-romaji.ts # カタカナ→ローマ字変換 (外来語対応)
             └── i18n/             # 多言語対応
                 ├── dictionaries.ts # 辞書 (ja/en)
                 └── context.tsx     # I18nProvider
@@ -229,11 +236,15 @@ cd backend && npm run build
 | 機能 | 説明 |
 |-----|------|
 | 4占術 | 星座占い・数秘術・血液型占い・タロット |
+| SNSシェア | 結果をX(Twitter)/LINE/Facebookでシェア + リンクコピー |
+| 占い履歴 | localStorage に過去の結果を保存・一覧表示 (最大50件) |
+| 結果→他占術遷移 | 結果画面下部に他3占術へのショートカット |
 | PWA | ホーム画面追加対応 (manifest.json) |
 | OGP / SNS Card | Open Graph + Twitter Card メタデータ |
+| SEO | sitemap.xml, robots.txt, JSON-LD 構造化データ |
 | 多言語対応 (i18n) | 日本語 / English 切替 |
 | アニメーション | Framer Motion (ページ遷移・カード表示) |
-| アクセシビリティ | ARIA属性・スキップナビ・フォーカスリング・セマンティックHTML |
+| アクセシビリティ | WCAG AA準拠カラーコントラスト・ARIA属性・スキップナビ・フォーカスリング |
 | カスタム404 | 独自エラーページ |
 | ヘルスチェック | `/health` (Frontend), `/api/health` (Backend) |
 
@@ -270,6 +281,12 @@ cd backend && npm run build
                     ┌────┬───────┼───────┬────┐
                     ▼    ▼       ▼       ▼    │
                   星座  数秘術  血液型  タロット│
+                    │    │       │       │    │
+                    │   [SNSシェア + 他占術ショートカット]
+                    │    │       │       │    │
+                    └──→ 履歴に自動保存 ←──┘    │
+                              │               │
+                         履歴 (/history)       │
                                               │
                         ← 戻る ───────────────┘
 ```
@@ -288,7 +305,11 @@ cd backend && npm run build
 | `aurora-green` | `#34d399` | 成功・高スコア |
 | `crimson` | `#f43f5e` | エラー・低スコア |
 
-フォント: Inter + Noto Sans JP
+| `text-primary` | `#f0edf6` | メインテキスト |
+| `text-secondary` | `#b8b0d0` | サブテキスト (WCAG AA準拠) |
+| `text-muted` | `#8a80a0` | ミュートテキスト (WCAG AA準拠) |
+
+フォント: Inter + Noto Sans JP (400/500/700 サブセット最適化)
 
 ## AWS デプロイ
 

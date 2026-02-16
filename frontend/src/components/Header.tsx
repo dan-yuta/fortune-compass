@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Star, User } from "lucide-react";
+import { Star, User, Clock } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -21,6 +21,13 @@ export default function Header() {
 
         <div className="flex items-center gap-1">
           <LanguageSwitcher />
+          <Link
+            href="/history"
+            className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors duration-200 rounded-lg px-3 py-2 hover:bg-deep-purple focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
+            aria-label="占い履歴"
+          >
+            <Clock className="w-5 h-5" aria-hidden="true" />
+          </Link>
           <Link
             href="/profile"
             className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors duration-200 rounded-lg px-3 py-2 hover:bg-deep-purple focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"

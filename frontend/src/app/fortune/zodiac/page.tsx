@@ -9,6 +9,8 @@ import LoadingState from "@/components/fortune/LoadingState";
 import ErrorState from "@/components/fortune/ErrorState";
 import ResultCard from "@/components/fortune/ResultCard";
 import ScoreDisplay from "@/components/fortune/ScoreDisplay";
+import OtherFortunes from "@/components/fortune/OtherFortunes";
+import ShareButtons from "@/components/fortune/ShareButtons";
 
 export default function ZodiacPage() {
   const { result, loading, error, retry } = useFortune<ZodiacResult>({
@@ -85,14 +87,12 @@ export default function ZodiacPage() {
         </ResultCard>
       </div>
 
-      <div className="mt-8 text-center">
-        <Link
-          href="/fortune"
-          className="inline-block bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-6 py-3 font-medium hover:opacity-90 transition-all duration-200 active:scale-[0.98]"
-        >
-          他の占いを試す
-        </Link>
-      </div>
+      <ShareButtons
+        title={`星座占い - ${result.sign}`}
+        text={`今日の運勢: ${"★".repeat(result.score)}${"☆".repeat(5 - result.score)} ${result.advice}`}
+      />
+
+      <OtherFortunes current="zodiac" />
     </div>
   );
 }

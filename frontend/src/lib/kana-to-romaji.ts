@@ -88,6 +88,16 @@ const katakanaMap: Record<string, string> = {
   プ: "pu",
   ペ: "pe",
   ポ: "po",
+
+  // Small vowels (standalone use)
+  ァ: "a",
+  ィ: "i",
+  ゥ: "u",
+  ェ: "e",
+  ォ: "o",
+  ャ: "ya",
+  ュ: "yu",
+  ョ: "yo",
 };
 
 const combinationMap: Record<string, string> = {
@@ -139,15 +149,42 @@ const combinationMap: Record<string, string> = {
   // Special combinations with ティ, ディ, etc.
   ティ: "ti",
   ディ: "di",
+  トゥ: "tu",
+  ドゥ: "du",
+  ツァ: "tsa",
+  ツィ: "tsi",
+  ツェ: "tse",
+  ツォ: "tso",
   ファ: "fa",
   フィ: "fi",
   フェ: "fe",
   フォ: "fo",
+  フュ: "fyu",
+  ウィ: "wi",
+  ウェ: "we",
+  ウォ: "wo",
   ヴァ: "va",
   ヴィ: "vi",
   ヴ: "vu",
   ヴェ: "ve",
   ヴォ: "vo",
+  ヴュ: "vyu",
+  シェ: "she",
+  ジェ: "je",
+  チェ: "che",
+  テュ: "tyu",
+  デュ: "dyu",
+  イェ: "ye",
+  クァ: "kwa",
+  クィ: "kwi",
+  クェ: "kwe",
+  クォ: "kwo",
+  グァ: "gwa",
+
+  // Dakuten combinations - D
+  ヂャ: "dya",
+  ヂュ: "dyu",
+  ヂョ: "dyo",
 };
 
 export function kanaToRomaji(kana: string): string {

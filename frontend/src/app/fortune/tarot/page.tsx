@@ -9,6 +9,8 @@ import { useFortune } from "@/lib/useFortune";
 import LoadingState from "@/components/fortune/LoadingState";
 import ErrorState from "@/components/fortune/ErrorState";
 import ResultCard from "@/components/fortune/ResultCard";
+import OtherFortunes from "@/components/fortune/OtherFortunes";
+import ShareButtons from "@/components/fortune/ShareButtons";
 
 export default function TarotPage() {
   const { result, loading, error, retry } = useFortune<TarotResult>({
@@ -123,7 +125,7 @@ export default function TarotPage() {
       </div>
 
       {/* Navigation */}
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <div className="mt-8 text-center">
         <button
           onClick={retry}
           className="inline-flex items-center gap-2 bg-twilight text-text-primary border border-mystic-purple/20 rounded-lg px-6 py-3 font-medium hover:border-mystic-purple/60 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
@@ -131,13 +133,14 @@ export default function TarotPage() {
           <RotateCcw className="w-4 h-4" aria-hidden="true" />
           もう一度引く
         </button>
-        <Link
-          href="/fortune"
-          className="inline-block bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-6 py-3 font-medium hover:opacity-90 transition-all duration-200 active:scale-[0.98]"
-        >
-          他の占いを試す
-        </Link>
       </div>
+
+      <ShareButtons
+        title="タロット占い"
+        text={`${result.cards.map((c) => `${c.positionLabel}: ${c.name}${c.isReversed ? "(逆位置)" : ""}`).join(" / ")} ${result.overallMessage}`}
+      />
+
+      <OtherFortunes current="tarot" />
     </motion.div>
   );
 }

@@ -12,6 +12,7 @@ const inter = Inter({
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
   variable: "--font-noto-sans-jp",
   display: "swap",
 });
@@ -59,6 +60,22 @@ export const viewport: Viewport = {
   themeColor: "#0f0a1e",
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Fortune Compass",
+  description: "星座占い、数秘術、血液型占い、タロットであなたの運勢を占います。",
+  url: "https://d71oywvumn06c.cloudfront.net",
+  applicationCategory: "EntertainmentApplication",
+  operatingSystem: "Web",
+  inLanguage: "ja",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "JPY",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,6 +83,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${notoSansJP.variable} antialiased bg-midnight text-text-primary`}
       >
