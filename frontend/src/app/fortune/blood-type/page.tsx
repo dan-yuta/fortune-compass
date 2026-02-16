@@ -1,69 +1,32 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Heart } from "lucide-react";
-import { loadProfile, hasProfile } from "@/lib/storage";
-import { UserProfile, BloodTypeResult } from "@/lib/types";
+import { BloodTypeResult } from "@/lib/types";
 import { fetchBloodTypeFortune } from "@/lib/api-client";
+import { useFortune } from "@/lib/useFortune";
 import LoadingState from "@/components/fortune/LoadingState";
 import ErrorState from "@/components/fortune/ErrorState";
 import ResultCard from "@/components/fortune/ResultCard";
 import ScoreDisplay from "@/components/fortune/ScoreDisplay";
 
 export default function BloodTypePage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [result, setResult] = useState<BloodTypeResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchResult = useCallback(async (p: UserProfile) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchBloodTypeFortune(p);
-      setResult(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "占い結果の取得に失敗しました"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!hasProfile()) {
-      router.replace("/profile");
-      return;
-    }
-    const p = loadProfile();
-    if (!p || !p.bloodType) {
-      router.replace("/fortune");
-      return;
-    }
-    setProfile(p);
-    fetchResult(p);
-  }, [router, fetchResult]);
-
-  const handleRetry = () => {
-    if (profile) {
-      fetchResult(profile);
-    }
-  };
+  const { result, loading, error, retry } = useFortune<BloodTypeResult>({
+    fetcher: fetchBloodTypeFortune,
+    requireBloodType: true,
+  });
 
   if (loading) {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState onRetry={handleRetry} message={error} />;
-  }
-
-  if (!result) {
-    return null;
+  if (error || !result) {
+    return (
+      <ErrorState
+        onRetry={retry}
+        message={error || "占い結果を取得できませんでした"}
+      />
+    );
   }
 
   return (
@@ -86,23 +49,20 @@ export default function BloodTypePage() {
       </div>
 
       <div className="space-y-4">
-        {/* Score */}
         <ResultCard title="今日の運勢">
           <ScoreDisplay score={result.score} />
         </ResultCard>
 
-        {/* Personality */}
         <ResultCard title="性格">
           <p className="text-text-secondary leading-relaxed">
             {result.personality}
           </p>
         </ResultCard>
 
-        {/* Compatibility Ranking */}
         <ResultCard title="相性ランキング">
-          <div className="space-y-3">
+          <ol className="space-y-3">
             {result.compatibilityRanking.map((type, index) => (
-              <div key={type} className="flex items-center gap-3">
+              <li key={type} className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-twilight border border-mystic-purple/20">
                   <span
                     className={`text-sm font-bold ${
@@ -123,20 +83,20 @@ export default function BloodTypePage() {
                         ? "text-crimson fill-crimson"
                         : "text-text-muted"
                     }`}
+                    aria-hidden="true"
                   />
                   <span className="text-text-primary font-medium">
                     {type}型
                   </span>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </ResultCard>
 
-        {/* Advice */}
         <ResultCard title="アドバイス">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-text-secondary leading-relaxed">
               {result.advice}
             </p>
@@ -144,7 +104,6 @@ export default function BloodTypePage() {
         </ResultCard>
       </div>
 
-      {/* Navigation */}
       <div className="mt-8 text-center">
         <Link
           href="/fortune"

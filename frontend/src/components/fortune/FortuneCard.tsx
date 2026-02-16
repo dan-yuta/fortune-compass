@@ -22,10 +22,13 @@ export default function FortuneCard({
 }: FortuneCardProps) {
   if (disabled) {
     return (
-      <div className="bg-deep-purple rounded-xl p-6 border border-mystic-purple/20 opacity-50 pointer-events-none">
+      <div
+        className="bg-deep-purple rounded-xl p-6 border border-mystic-purple/20 opacity-50"
+        aria-disabled="true"
+      >
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-twilight flex items-center justify-center">
-            <Icon className="w-6 h-6 text-text-muted" />
+            <Icon className="w-6 h-6 text-text-muted" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-text-primary mb-1">
@@ -46,11 +49,11 @@ export default function FortuneCard({
   return (
     <Link
       href={href}
-      className="block bg-deep-purple rounded-xl p-6 border border-mystic-purple/20 hover:border-mystic-purple/60 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+      className="block bg-deep-purple rounded-xl p-6 border border-mystic-purple/20 hover:border-mystic-purple/60 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
     >
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-twilight flex items-center justify-center">
-          <Icon className="w-6 h-6 text-mystic-purple" />
+          <Icon className="w-6 h-6 text-mystic-purple" aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-text-primary mb-1">

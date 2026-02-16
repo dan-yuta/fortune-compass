@@ -1,72 +1,30 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, RotateCcw } from "lucide-react";
-import { loadProfile, hasProfile } from "@/lib/storage";
-import { UserProfile, TarotResult } from "@/lib/types";
+import { TarotResult } from "@/lib/types";
 import { fetchTarotFortune } from "@/lib/api-client";
+import { useFortune } from "@/lib/useFortune";
 import LoadingState from "@/components/fortune/LoadingState";
 import ErrorState from "@/components/fortune/ErrorState";
 import ResultCard from "@/components/fortune/ResultCard";
 
 export default function TarotPage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [result, setResult] = useState<TarotResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchResult = useCallback(async (p: UserProfile) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchTarotFortune(p);
-      setResult(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "占い結果の取得に失敗しました"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!hasProfile()) {
-      router.replace("/profile");
-      return;
-    }
-    const p = loadProfile();
-    if (p) {
-      setProfile(p);
-      fetchResult(p);
-    }
-  }, [router, fetchResult]);
-
-  const handleRetry = () => {
-    if (profile) {
-      fetchResult(profile);
-    }
-  };
-
-  const handleRedraw = () => {
-    if (profile) {
-      fetchResult(profile);
-    }
-  };
+  const { result, loading, error, retry } = useFortune<TarotResult>({
+    fetcher: fetchTarotFortune,
+  });
 
   if (loading) {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState onRetry={handleRetry} message={error} />;
-  }
-
-  if (!result) {
-    return null;
+  if (error || !result) {
+    return (
+      <ErrorState
+        onRetry={retry}
+        message={error || "占い結果を取得できませんでした"}
+      />
+    );
   }
 
   return (
@@ -91,35 +49,31 @@ export default function TarotPage() {
       {/* Tarot Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {result.cards.map((card, index) => (
-          <div
+          <article
             key={index}
             className="bg-deep-purple rounded-xl p-5 border border-mystic-purple/20 text-center"
           >
-            {/* Position label */}
             <p className="text-xs text-text-muted uppercase tracking-wider mb-3">
               {card.positionLabel}
             </p>
 
-            {/* Card number */}
             <div className="flex items-center justify-center mb-3">
               <span className="text-3xl font-bold text-celestial-gold">
                 {card.number}
               </span>
             </div>
 
-            {/* Card name */}
             <h3 className="text-lg font-semibold text-text-primary mb-1">
               {card.name}
             </h3>
             <p className="text-sm text-text-muted mb-2">{card.nameEn}</p>
 
-            {/* Reversed badge */}
             {card.isReversed && (
               <span className="inline-block bg-crimson/20 text-crimson text-xs font-medium px-2.5 py-1 rounded-full">
                 逆位置
               </span>
             )}
-          </div>
+          </article>
         ))}
       </div>
 
@@ -133,10 +87,9 @@ export default function TarotPage() {
           </ResultCard>
         ))}
 
-        {/* Overall message */}
         <ResultCard title="総合メッセージ">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-text-secondary leading-relaxed">
               {result.overallMessage}
             </p>
@@ -147,10 +100,10 @@ export default function TarotPage() {
       {/* Navigation */}
       <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
         <button
-          onClick={handleRedraw}
-          className="inline-flex items-center gap-2 bg-twilight text-text-primary border border-mystic-purple/20 rounded-lg px-6 py-3 font-medium hover:border-mystic-purple/60 transition-all duration-200 active:scale-[0.98]"
+          onClick={retry}
+          className="inline-flex items-center gap-2 bg-twilight text-text-primary border border-mystic-purple/20 rounded-lg px-6 py-3 font-medium hover:border-mystic-purple/60 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-4 h-4" aria-hidden="true" />
           もう一度引く
         </button>
         <Link

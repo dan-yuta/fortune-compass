@@ -31,8 +31,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${notoSansJP.variable} antialiased bg-midnight text-text-primary`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-mystic-purple focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+        >
+          メインコンテンツへスキップ
+        </a>
         <Header />
-        <main className="max-w-4xl mx-auto px-4 md:px-8 py-8">
+        <main id="main-content" className="max-w-4xl mx-auto px-4 md:px-8 py-8">
           {children}
         </main>
       </body>

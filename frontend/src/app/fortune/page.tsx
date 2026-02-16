@@ -73,7 +73,7 @@ export default function FortuneSelectionPage() {
           href="/profile"
           className="inline-flex items-center gap-2 text-text-secondary hover:text-mystic-purple transition-colors duration-200"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-4 h-4" aria-hidden="true" />
           <span className="text-sm">プロフィール編集</span>
         </Link>
       </div>

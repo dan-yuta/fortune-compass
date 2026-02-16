@@ -1,67 +1,31 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Palette, Gift } from "lucide-react";
-import { loadProfile, hasProfile } from "@/lib/storage";
-import { UserProfile, ZodiacResult } from "@/lib/types";
+import { ZodiacResult } from "@/lib/types";
 import { fetchZodiacFortune } from "@/lib/api-client";
+import { useFortune } from "@/lib/useFortune";
 import LoadingState from "@/components/fortune/LoadingState";
 import ErrorState from "@/components/fortune/ErrorState";
 import ResultCard from "@/components/fortune/ResultCard";
 import ScoreDisplay from "@/components/fortune/ScoreDisplay";
 
 export default function ZodiacPage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [result, setResult] = useState<ZodiacResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchResult = useCallback(async (p: UserProfile) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchZodiacFortune(p);
-      setResult(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "占い結果の取得に失敗しました"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!hasProfile()) {
-      router.replace("/profile");
-      return;
-    }
-    const p = loadProfile();
-    if (p) {
-      setProfile(p);
-      fetchResult(p);
-    }
-  }, [router, fetchResult]);
-
-  const handleRetry = () => {
-    if (profile) {
-      fetchResult(profile);
-    }
-  };
+  const { result, loading, error, retry } = useFortune<ZodiacResult>({
+    fetcher: fetchZodiacFortune,
+  });
 
   if (loading) {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState onRetry={handleRetry} message={error} />;
-  }
-
-  if (!result) {
-    return null;
+  if (error || !result) {
+    return (
+      <ErrorState
+        onRetry={retry}
+        message={error || "占い結果を取得できませんでした"}
+      />
+    );
   }
 
   return (
@@ -84,16 +48,14 @@ export default function ZodiacPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Score */}
         <ResultCard title="今日の運勢">
           <ScoreDisplay score={result.score} />
         </ResultCard>
 
-        {/* Lucky items */}
         <ResultCard title="ラッキーアイテム">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
-              <Palette className="w-5 h-5 text-mystic-purple flex-shrink-0" />
+              <Palette className="w-5 h-5 text-mystic-purple flex-shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-xs text-text-muted">ラッキーカラー</p>
                 <p className="text-text-primary font-medium">
@@ -102,7 +64,7 @@ export default function ZodiacPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Gift className="w-5 h-5 text-celestial-gold flex-shrink-0" />
+              <Gift className="w-5 h-5 text-celestial-gold flex-shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-xs text-text-muted">ラッキーアイテム</p>
                 <p className="text-text-primary font-medium">
@@ -113,10 +75,9 @@ export default function ZodiacPage() {
           </div>
         </ResultCard>
 
-        {/* Advice */}
         <ResultCard title="アドバイス">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-text-secondary leading-relaxed">
               {result.advice}
             </p>
@@ -124,7 +85,6 @@ export default function ZodiacPage() {
         </ResultCard>
       </div>
 
-      {/* Navigation */}
       <div className="mt-8 text-center">
         <Link
           href="/fortune"

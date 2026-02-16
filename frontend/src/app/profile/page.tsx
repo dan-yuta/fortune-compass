@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { UserProfile } from "@/lib/types";
-import { saveProfile, getProfileSnapshot, subscribeStorage } from "@/lib/storage";
+import { saveProfile, loadProfile } from "@/lib/storage";
 import { kanaToRomaji } from "@/lib/kana-to-romaji";
 
 const BLOOD_TYPES = ["A", "B", "O", "AB"] as const;
-const CURRENT_YEAR = 2025;
+const CURRENT_YEAR = new Date().getFullYear();
 const START_YEAR = 1920;
 
 interface FormErrors {
@@ -25,13 +25,19 @@ function parseBirthdayPart(birthday: string | undefined, index: number): string 
   return index === 0 ? parts[0] : String(Number(parts[index]));
 }
 
+function getDaysInMonth(year: string, month: string): number {
+  if (!year || !month) return 31;
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
+function getInitialProfile(): UserProfile | null {
+  if (typeof window === "undefined") return null;
+  return loadProfile();
+}
+
 export default function ProfilePage() {
   const router = useRouter();
-  const existing = useSyncExternalStore(
-    subscribeStorage,
-    getProfileSnapshot,
-    () => null
-  );
+  const [existing] = useState(getInitialProfile);
 
   const [name, setName] = useState(existing?.name ?? "");
   const [nameKana, setNameKana] = useState(existing?.nameKana ?? "");
@@ -41,6 +47,24 @@ export default function ProfilePage() {
   const [bloodType, setBloodType] = useState<string | null>(existing?.bloodType ?? null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const maxDays = getDaysInMonth(birthYear, birthMonth);
+
+  const handleMonthChange = (newMonth: string) => {
+    setBirthMonth(newMonth);
+    const newMaxDays = getDaysInMonth(birthYear, newMonth);
+    if (birthDay && Number(birthDay) > newMaxDays) {
+      setBirthDay(String(newMaxDays));
+    }
+  };
+
+  const handleYearChange = (newYear: string) => {
+    setBirthYear(newYear);
+    const newMaxDays = getDaysInMonth(newYear, birthMonth);
+    if (birthDay && Number(birthDay) > newMaxDays) {
+      setBirthDay(String(newMaxDays));
+    }
+  };
 
   const isKatakana = (str: string): boolean => {
     return /^[ァ-ヶー\s]+$/.test(str);
@@ -102,7 +126,7 @@ export default function ProfilePage() {
     (_, i) => CURRENT_YEAR - i
   );
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const days = Array.from({ length: maxDays }, (_, i) => i + 1);
 
   return (
     <div className="animate-fade-in max-w-xl mx-auto">
@@ -121,14 +145,15 @@ export default function ProfilePage() {
         占いに必要な情報を入力してください
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Name field */}
         <div>
           <label
             htmlFor="name"
             className="block text-sm font-medium text-text-primary mb-2"
           >
-            名前 <span className="text-crimson">*</span>
+            名前 <span className="text-crimson" aria-hidden="true">*</span>
+            <span className="sr-only">（必須）</span>
           </label>
           <input
             id="name"
@@ -137,10 +162,14 @@ export default function ProfilePage() {
             onChange={(e) => setName(e.target.value)}
             onBlur={() => handleBlur("name")}
             placeholder="山田 太郎"
-            className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-mystic-purple/60 transition-colors duration-200"
+            required
+            aria-required="true"
+            aria-invalid={touched.name && !!errors.name}
+            aria-describedby={touched.name && errors.name ? "name-error" : undefined}
+            className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 focus:border-mystic-purple/60 transition-colors duration-200"
           />
           {touched.name && errors.name && (
-            <p className="text-crimson text-sm mt-1">{errors.name}</p>
+            <p id="name-error" role="alert" className="text-crimson text-sm mt-1">{errors.name}</p>
           )}
         </div>
 
@@ -150,7 +179,8 @@ export default function ProfilePage() {
             htmlFor="nameKana"
             className="block text-sm font-medium text-text-primary mb-2"
           >
-            フリガナ（カタカナ） <span className="text-crimson">*</span>
+            フリガナ（カタカナ） <span className="text-crimson" aria-hidden="true">*</span>
+            <span className="sr-only">（必須）</span>
           </label>
           <input
             id="nameKana"
@@ -159,25 +189,33 @@ export default function ProfilePage() {
             onChange={(e) => setNameKana(e.target.value)}
             onBlur={() => handleBlur("nameKana")}
             placeholder="ヤマダ タロウ"
-            className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-mystic-purple/60 transition-colors duration-200"
+            required
+            aria-required="true"
+            aria-invalid={touched.nameKana && !!errors.nameKana}
+            aria-describedby={touched.nameKana && errors.nameKana ? "nameKana-error" : undefined}
+            className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 focus:border-mystic-purple/60 transition-colors duration-200"
           />
           {touched.nameKana && errors.nameKana && (
-            <p className="text-crimson text-sm mt-1">{errors.nameKana}</p>
+            <p id="nameKana-error" role="alert" className="text-crimson text-sm mt-1">{errors.nameKana}</p>
           )}
         </div>
 
         {/* Birthday field */}
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-2">
-            生年月日 <span className="text-crimson">*</span>
-          </label>
+        <fieldset>
+          <legend className="block text-sm font-medium text-text-primary mb-2">
+            生年月日 <span className="text-crimson" aria-hidden="true">*</span>
+            <span className="sr-only">（必須）</span>
+          </legend>
           <div className="grid grid-cols-3 gap-3">
             <div>
+              <label htmlFor="birthYear" className="sr-only">年</label>
               <select
+                id="birthYear"
                 value={birthYear}
-                onChange={(e) => setBirthYear(e.target.value)}
+                onChange={(e) => handleYearChange(e.target.value)}
                 onBlur={() => handleBlur("birthday")}
-                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
+                aria-required="true"
+                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
               >
                 <option value="" className="text-text-muted">
                   年
@@ -190,11 +228,14 @@ export default function ProfilePage() {
               </select>
             </div>
             <div>
+              <label htmlFor="birthMonth" className="sr-only">月</label>
               <select
+                id="birthMonth"
                 value={birthMonth}
-                onChange={(e) => setBirthMonth(e.target.value)}
+                onChange={(e) => handleMonthChange(e.target.value)}
                 onBlur={() => handleBlur("birthday")}
-                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
+                aria-required="true"
+                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
               >
                 <option value="" className="text-text-muted">
                   月
@@ -207,11 +248,14 @@ export default function ProfilePage() {
               </select>
             </div>
             <div>
+              <label htmlFor="birthDay" className="sr-only">日</label>
               <select
+                id="birthDay"
                 value={birthDay}
                 onChange={(e) => setBirthDay(e.target.value)}
                 onBlur={() => handleBlur("birthday")}
-                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
+                aria-required="true"
+                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 focus:border-mystic-purple/60 transition-colors duration-200 appearance-none"
               >
                 <option value="" className="text-text-muted">
                   日
@@ -225,16 +269,16 @@ export default function ProfilePage() {
             </div>
           </div>
           {touched.birthday && errors.birthday && (
-            <p className="text-crimson text-sm mt-1">{errors.birthday}</p>
+            <p role="alert" className="text-crimson text-sm mt-1">{errors.birthday}</p>
           )}
-        </div>
+        </fieldset>
 
         {/* Blood Type field */}
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-2">
+        <fieldset>
+          <legend className="block text-sm font-medium text-text-primary mb-2">
             血液型（任意）
-          </label>
-          <div className="flex gap-3">
+          </legend>
+          <div className="flex gap-3" role="group" aria-label="血液型選択">
             {BLOOD_TYPES.map((type) => (
               <button
                 key={type}
@@ -242,7 +286,8 @@ export default function ProfilePage() {
                 onClick={() =>
                   setBloodType(bloodType === type ? null : type)
                 }
-                className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 border ${
+                aria-pressed={bloodType === type}
+                className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 ${
                   bloodType === type
                     ? "bg-mystic-purple text-white border-mystic-purple"
                     : "bg-twilight text-text-secondary border-mystic-purple/20 hover:border-mystic-purple/40"
@@ -252,14 +297,14 @@ export default function ProfilePage() {
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         {/* Submit button */}
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-6 py-3 font-semibold hover:opacity-90 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 mt-8"
+          className="w-full bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-6 py-3 font-semibold hover:opacity-90 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 flex items-center justify-center gap-2 mt-8"
         >
-          <Save className="w-5 h-5" />
+          <Save className="w-5 h-5" aria-hidden="true" />
           保存して占いをはじめる
         </button>
       </form>

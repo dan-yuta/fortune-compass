@@ -42,7 +42,7 @@ export default function HomePage() {
         />
 
         <div className="animate-fade-in">
-          <Star className="w-16 h-16 text-celestial-gold mb-6 mx-auto" />
+          <Star className="w-16 h-16 text-celestial-gold mb-6 mx-auto" aria-hidden="true" />
 
           <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-4 tracking-tight">
             Fortune Compass
@@ -54,7 +54,7 @@ export default function HomePage() {
 
           <button
             onClick={handleStart}
-            className="bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-8 py-4 text-lg font-semibold hover:opacity-90 transition-all duration-200 active:scale-[0.98]"
+            className="bg-gradient-to-r from-mystic-purple to-purple-700 text-white rounded-lg px-8 py-4 text-lg font-semibold hover:opacity-90 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
           >
             占いをはじめる
           </button>
@@ -69,7 +69,7 @@ export default function HomePage() {
             className="flex flex-col items-center gap-2 text-center"
           >
             <div className="w-14 h-14 rounded-xl bg-deep-purple border border-mystic-purple/20 flex items-center justify-center">
-              <Icon className="w-7 h-7 text-mystic-purple" />
+              <Icon className="w-7 h-7 text-mystic-purple" aria-hidden="true" />
             </div>
             <span className="text-sm text-text-secondary">{label}</span>
           </div>
