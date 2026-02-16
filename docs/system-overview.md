@@ -41,7 +41,9 @@
 | インフラ | AWS (CloudFront / ALB / ECS Fargate / ECR / VPC) |
 | IaC | Terraform（35 リソース） |
 | CI/CD | GitHub Actions（OIDC 認証） |
-| テスト | Jest + Supertest（75 テストケース / カバレッジ 90.17%） |
+| テスト (Backend) | Jest + Supertest（75 テストケース / カバレッジ 90.17%） |
+| テスト (Frontend) | Jest + React Testing Library（31 テストケース） |
+| E2E テスト | Playwright（25 テストケース） |
 
 ### 対応する占術
 
@@ -51,6 +53,7 @@
 | 数秘術 | 生年月日 + 名前 | 運命数・性格特徴・年運・相性数・アドバイス | いいえ（固定） |
 | 血液型占い | 血液型 | 性格・スコア・相性ランキング・アドバイス | はい |
 | タロット占い | なし | 3 枚のカード（過去・現在・未来）+ 総合メッセージ | 毎回変動 |
+| 総合ダッシュボード | 生年月日 + 名前? + 血液型? | レーダーチャート（4軸）+ 各占術サマリー + 総合アドバイス | はい |
 
 ---
 
@@ -193,11 +196,14 @@
 |------|------|------|
 | トップ | `/` | ヒーローセクション + CTA ボタン + 4 占術アイコン |
 | プロフィール | `/profile` | 名前・フリガナ・生年月日・血液型の入力フォーム |
-| 占術選択 | `/fortune` | 4 占術のカード選択。プロフィール未登録なら `/profile` にリダイレクト |
-| 星座結果 | `/fortune/zodiac` | 星座名・スコア（星 1〜5）・ラッキーカラー/アイテム・アドバイス |
-| 数秘術結果 | `/fortune/numerology` | 運命数（大きな数字表示）・性格バッジ・年運・相性数 |
-| 血液型結果 | `/fortune/blood-type` | 血液型・スコア・性格・相性ランキング（色分け）・アドバイス |
-| タロット結果 | `/fortune/tarot` | 3 枚カード表示 + 正逆位置 + 各カード解釈 + 総合メッセージ |
+| 占術選択 | `/fortune` | ダッシュボードバナー + 4 占術カード選択。未登録なら `/profile` にリダイレクト |
+| ダッシュボード | `/fortune/dashboard` | 4 占術一括実行 + SVG レーダーチャート + サマリーカード + 総合アドバイス |
+| 星座結果 | `/fortune/zodiac` | 星座名・スコア・ラッキーカラー/アイテム・アドバイス + 他占術ショートカット + SNSシェア |
+| 数秘術結果 | `/fortune/numerology` | 運命数・性格バッジ・年運・相性数 + 他占術ショートカット + SNSシェア |
+| 血液型結果 | `/fortune/blood-type` | 血液型・スコア・性格・相性ランキング・アドバイス + 他占術ショートカット + SNSシェア |
+| タロット結果 | `/fortune/tarot` | 3 枚カード表示 + 正逆位置 + 各カード解釈 + 総合メッセージ + 他占術ショートカット + SNSシェア |
+| 占い履歴 | `/history` | 過去の占い結果一覧（最大 50 件）+ クリア機能 |
+| ヘルスチェック | `/health` | フロントエンドヘルスチェック（ALB 用） |
 
 ---
 
@@ -218,34 +224,47 @@
 ```
 frontend/src/
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx                #   ルートレイアウト（Header + フォント + ダークテーマ）
+│   ├── layout.tsx                #   ルートレイアウト（Header + フォント + ダークテーマ + JSON-LD）
 │   ├── page.tsx                  #   トップページ（ヒーロー + CTA）
 │   ├── globals.css               #   デザインシステム定義（@theme）
+│   ├── sitemap.ts                #   sitemap.xml 生成
+│   ├── robots.ts                 #   robots.txt 生成
 │   ├── health/
 │   │   └── route.ts              #   ヘルスチェック API（ALB 用）
 │   ├── profile/
-│   │   └── page.tsx              #   プロフィール入力フォーム（268行）
+│   │   └── page.tsx              #   プロフィール入力フォーム
+│   ├── history/
+│   │   └── page.tsx              #   占い履歴一覧（最大50件）
 │   └── fortune/
-│       ├── page.tsx              #   占術選択画面
-│       ├── zodiac/page.tsx       #   星座占い結果（138行）
-│       ├── numerology/page.tsx   #   数秘術結果（153行）
-│       ├── blood-type/page.tsx   #   血液型占い結果（158行）
-│       └── tarot/page.tsx        #   タロット結果（165行）
+│       ├── page.tsx              #   占術選択（ダッシュボードバナー + 4カード）
+│       ├── dashboard/page.tsx    #   総合運勢ダッシュボード
+│       ├── zodiac/page.tsx       #   星座占い結果
+│       ├── numerology/page.tsx   #   数秘術結果
+│       ├── blood-type/page.tsx   #   血液型占い結果
+│       └── tarot/page.tsx        #   タロット結果
 │
 ├── components/
-│   ├── Header.tsx                #   固定ヘッダー（ロゴ + プロフィールリンク）
+│   ├── Header.tsx                #   固定ヘッダー（ロゴ + 履歴リンク + プロフィール）
+│   ├── LanguageSwitcher.tsx      #   言語切替
+│   ├── motion/                   #   Framer Motion コンポーネント
 │   └── fortune/
 │       ├── FortuneCard.tsx       #   占術選択カード（有効/無効切替）
 │       ├── ScoreDisplay.tsx      #   星スコア表示（1〜5、色分け）
 │       ├── LoadingState.tsx      #   ローディングアニメーション
 │       ├── ErrorState.tsx        #   エラー表示 + リトライボタン
-│       └── ResultCard.tsx        #   結果セクションのカード枠
+│       ├── ResultCard.tsx        #   結果セクションのカード枠
+│       ├── OtherFortunes.tsx     #   他占術ショートカット（結果ページ下部）
+│       ├── ShareButtons.tsx      #   SNSシェアボタン（X/LINE/FB/クリップボード）
+│       └── RadarChart.tsx        #   SVGレーダーチャート（ダッシュボード用）
 │
 └── lib/
-    ├── types.ts                  #   型定義（UserProfile, 各 Result 型）
+    ├── types.ts                  #   型定義（UserProfile, RadarScores, DashboardResult 等）
     ├── storage.ts                #   localStorage 管理 + React 同期
-    ├── api-client.ts             #   API 呼び出し（4 占術 + 汎用 POST）
-    └── kana-to-romaji.ts         #   カタカナ → ローマ字変換（85+ マッピング）
+    ├── api-client.ts             #   API 呼び出し（5 占術 + ダッシュボード）
+    ├── useFortune.ts             #   占い共通フック（履歴自動保存付き）
+    ├── kana-to-romaji.ts         #   カタカナ → ローマ字変換（外来語音対応）
+    ├── history.ts                #   占い履歴管理（localStorage, 最大50件）
+    └── i18n/                     #   多言語対応 (ja/en)
 ```
 
 ### 状態管理
@@ -279,6 +298,35 @@ storage.ts
 ├── saveProfile(profile)     ← 保存 + キャッシュ無効化
 └── loadProfile()            ← 読み込み
 ```
+
+### 占い履歴
+
+```
+┌───────────────────────────────────────────────────────┐
+│                    localStorage                       │
+│                                                       │
+│  Key: "fortune-compass-history"                       │
+│  Value: [                                             │
+│    {                                                  │
+│      "fortuneType": "zodiac",                         │
+│      "date": "2026-02-17T12:00:00.000Z",              │
+│      "result": { "sign": "牡牛座", "score": 4, ... }  │
+│    },                                                 │
+│    ...                                                │
+│  ]                                                    │
+│  最大50件保持（FIFO）                                   │
+└───────────────────────────────────────────────────────┘
+```
+
+**history.ts:**
+```
+history.ts
+├── getHistory()             ← 履歴一覧を取得
+├── saveToHistory(result)    ← 結果を履歴に保存（50件超で最古を削除）
+└── clearHistory()           ← 履歴を全クリア
+```
+
+`useFortune` フック内で API レスポンス取得後に `saveToHistory()` を自動呼び出し。
 
 ### カタカナ → ローマ字変換
 
@@ -319,14 +367,15 @@ storage.ts
 backend/src/
 ├── index.ts                     # エントリポイント（Express 設定、ミドルウェア）
 ├── routes/
-│   └── fortune.ts               # 4 エンドポイントのルーティング + バリデーション
+│   └── fortune.ts               # 5 エンドポイントのルーティング + バリデーション
 ├── services/                    # 占いロジック（ビジネスロジック層）
 │   ├── zodiac.ts                #   星座占い
 │   ├── numerology.ts            #   数秘術
 │   ├── blood-type.ts            #   血液型占い
-│   └── tarot.ts                 #   タロット占い
+│   ├── tarot.ts                 #   タロット占い
+│   └── dashboard.ts             #   総合ダッシュボード（4占術統合 + レーダースコア）
 ├── data/                        # マスターデータ（静的データ層）
-│   ├── zodiac-data.ts           #   12 星座の境界日、エレメント、アドバイス文
+│   ├── zodiac-data.ts           #   12 星座の境界日、エレメント、アドバイス文（2〜3文）
 │   ├── tarot-cards.ts           #   大アルカナ 22 枚のデータ
 │   └── blood-type-data.ts       #   A/B/O/AB の性格・相性データ
 └── utils/
@@ -343,6 +392,7 @@ backend/src/
 | `POST /api/fortune/numerology` | `{ birthday: "1990-05-15", name: "tanakataroo" }` | 運命数・性格・年運 |
 | `POST /api/fortune/blood-type` | `{ bloodType: "A" }` | 性格・スコア・相性ランキング |
 | `POST /api/fortune/tarot` | `{}` | 3 枚カード + 総合メッセージ |
+| `POST /api/fortune/dashboard` | `{ birthday, name?, bloodType? }` | レーダースコア + 4占術サマリー + 総合アドバイス |
 | `GET /api/health` | — | `{ status: "ok", timestamp: "..." }` |
 
 ### バリデーション
@@ -373,7 +423,8 @@ Express App
         ├── POST /zodiac
         ├── POST /numerology
         ├── POST /blood-type
-        └── POST /tarot
+        ├── POST /tarot
+        └── POST /dashboard
 ```
 
 ---
@@ -702,7 +753,7 @@ CloudFront → ブラウザ
 │  テキストカラー                                           │
 │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │
 │  │  primary  │  │ secondary │  │  muted    │           │
-│  │ #f0edf6   │  │ #a89ec4   │  │ #6b6183   │           │
+│  │ #f0edf6   │  │ #b8b0d0   │  │ #8a80a0   │           │
 │  │ メインテキスト│  │ 補足テキスト│  │ 薄いテキスト│           │
 │  └───────────┘  └───────────┘  └───────────┘           │
 │                                                         │
@@ -1003,49 +1054,58 @@ GitHub Actions                        AWS
 
 ## 13. ファイル一覧
 
-### バックエンド（14 ファイル）
+### バックエンド（15 ファイル）
 
 | ファイル | 行数 | 役割 |
 |---------|------|------|
 | `backend/src/index.ts` | 25 | Express エントリポイント、CORS、ヘルスチェック |
-| `backend/src/routes/fortune.ts` | 78 | 4 エンドポイントのルーティング + バリデーション |
+| `backend/src/routes/fortune.ts` | ~95 | 5 エンドポイントのルーティング + バリデーション |
 | `backend/src/services/zodiac.ts` | 57 | 星座判定 + シード付きスコア生成 |
 | `backend/src/services/numerology.ts` | 82 | 運命数計算 + ピタゴリアン変換 |
 | `backend/src/services/blood-type.ts` | 32 | 血液型判定 + シード付きスコア生成 |
 | `backend/src/services/tarot.ts` | 61 | Fisher-Yates シャッフル + 3 枚抽出 |
-| `backend/src/data/zodiac-data.ts` | 54 | 12 星座マスターデータ |
-| `backend/src/data/tarot-cards.ts` | 47 | 大アルカナ 22 枚マスターデータ |
-| `backend/src/data/blood-type-data.ts` | 38 | 血液型性格・相性マスターデータ |
+| `backend/src/services/dashboard.ts` | ~120 | 4 占術統合 + レーダースコア算出 |
+| `backend/src/data/zodiac-data.ts` | ~80 | 12 星座マスターデータ（アドバイス拡充済み） |
+| `backend/src/data/tarot-cards.ts` | ~70 | 大アルカナ 22 枚マスターデータ（メッセージ拡充済み） |
+| `backend/src/data/blood-type-data.ts` | ~55 | 血液型性格・相性マスターデータ（アドバイス拡充済み） |
 | `backend/src/utils/seed-random.ts` | 27 | djb2 ハッシュ + シード付き乱数 |
 | `backend/Dockerfile` | 20 | マルチステージ Docker ビルド |
 | `backend/.dockerignore` | 5 | Docker ビルド除外設定 |
 | `backend/package.json` | - | 依存・スクリプト定義 |
 | `backend/tsconfig.json` | - | TypeScript 設定 |
 
-### フロントエンド（20 ファイル）
+### フロントエンド（28 ファイル）
 
 | ファイル | 行数 | 役割 |
 |---------|------|------|
-| `frontend/src/app/layout.tsx` | 41 | ルートレイアウト（フォント + ダークテーマ + Header） |
+| `frontend/src/app/layout.tsx` | ~60 | ルートレイアウト（フォント + ダークテーマ + Header + JSON-LD + DNS prefetch） |
 | `frontend/src/app/page.tsx` | 80 | トップページ（ヒーロー + CTA + 占術アイコン） |
-| `frontend/src/app/globals.css` | 37 | デザインシステム定義（@theme + アニメーション） |
+| `frontend/src/app/globals.css` | ~40 | デザインシステム定義（@theme + WCAG AA 色） |
+| `frontend/src/app/sitemap.ts` | ~25 | sitemap.xml 生成 |
+| `frontend/src/app/robots.ts` | ~15 | robots.txt 生成 |
 | `frontend/src/app/health/route.ts` | 5 | ヘルスチェック API Route（ALB 用） |
 | `frontend/src/app/profile/page.tsx` | 268 | プロフィール入力フォーム |
-| `frontend/src/app/fortune/page.tsx` | 82 | 占術選択画面（4 カード） |
-| `frontend/src/app/fortune/zodiac/page.tsx` | 138 | 星座占い結果表示 |
-| `frontend/src/app/fortune/numerology/page.tsx` | 153 | 数秘術結果表示 |
-| `frontend/src/app/fortune/blood-type/page.tsx` | 158 | 血液型占い結果表示 |
-| `frontend/src/app/fortune/tarot/page.tsx` | 165 | タロット占い結果表示 |
-| `frontend/src/components/Header.tsx` | 28 | 固定ヘッダー |
+| `frontend/src/app/history/page.tsx` | ~120 | 占い履歴一覧（最大50件 + クリア機能） |
+| `frontend/src/app/fortune/page.tsx` | ~117 | 占術選択画面（ダッシュボードバナー + 4 カード） |
+| `frontend/src/app/fortune/dashboard/page.tsx` | ~213 | 総合運勢ダッシュボード |
+| `frontend/src/app/fortune/zodiac/page.tsx` | ~150 | 星座占い結果 + OtherFortunes + ShareButtons |
+| `frontend/src/app/fortune/numerology/page.tsx` | ~165 | 数秘術結果 + OtherFortunes + ShareButtons |
+| `frontend/src/app/fortune/blood-type/page.tsx` | ~170 | 血液型占い結果 + OtherFortunes + ShareButtons |
+| `frontend/src/app/fortune/tarot/page.tsx` | ~180 | タロット結果 + OtherFortunes + ShareButtons |
+| `frontend/src/components/Header.tsx` | ~35 | 固定ヘッダー（ロゴ + 履歴 + プロフィール） |
 | `frontend/src/components/fortune/FortuneCard.tsx` | 66 | 占術選択カード |
 | `frontend/src/components/fortune/ScoreDisplay.tsx` | 49 | 星スコア表示（1〜5） |
 | `frontend/src/components/fortune/LoadingState.tsx` | 22 | ローディングアニメーション |
 | `frontend/src/components/fortune/ErrorState.tsx` | 26 | エラー + リトライ |
 | `frontend/src/components/fortune/ResultCard.tsx` | 15 | 結果セクション枠 |
-| `frontend/src/lib/types.ts` | 55 | 型定義 |
+| `frontend/src/components/fortune/OtherFortunes.tsx` | ~65 | 他占術ショートカット |
+| `frontend/src/components/fortune/ShareButtons.tsx` | ~100 | SNSシェアボタン（X/LINE/FB/クリップボード） |
+| `frontend/src/components/fortune/RadarChart.tsx` | ~153 | SVG レーダーチャート |
+| `frontend/src/lib/types.ts` | ~75 | 型定義（RadarScores, DashboardResult 追加） |
 | `frontend/src/lib/storage.ts` | 75 | localStorage 管理 + React 同期 |
-| `frontend/src/lib/api-client.ts` | 60 | API クライアント（4 占術） |
-| `frontend/src/lib/kana-to-romaji.ts` | 217 | カタカナ → ローマ字変換 |
+| `frontend/src/lib/api-client.ts` | ~75 | API クライアント（5 占術 + ダッシュボード） |
+| `frontend/src/lib/kana-to-romaji.ts` | ~240 | カタカナ → ローマ字変換（外来語音対応） |
+| `frontend/src/lib/history.ts` | ~40 | 占い履歴管理（localStorage, 最大50件） |
 
 ### インフラ（17 ファイル）
 
@@ -1067,7 +1127,7 @@ GitHub Actions                        AWS
 |---------|------|
 | `.github/workflows/deploy.yml` | テスト → Docker build → ECR push → Terraform apply |
 
-### テスト（75 ケース）
+### バックエンドテスト（75 ケース）
 
 | テストファイル | ケース数 | 内容 |
 |-------------|---------|------|
@@ -1075,6 +1135,29 @@ GitHub Actions                        AWS
 | `backend/__tests__/services/numerology.test.ts` | ~15 | 運命数、マスターナンバー、名前変換 |
 | `backend/__tests__/services/blood-type.test.ts` | ~10 | 全血液型、無効値 |
 | `backend/__tests__/services/tarot.test.ts` | ~15 | 3 枚抽出、重複なし、正逆判定 |
-| `backend/__tests__/routes/fortune.test.ts` | ~15 | API レスポンス、バリデーション、エラー |
+| `backend/__tests__/routes/fortune.test.ts` | ~15 | API レスポンス、バリデーション、エラー（5エンドポイント） |
 
-**カバレッジ: 90.17%**
+**バックエンドカバレッジ: 90.17%**
+
+### フロントエンドテスト（31 ケース）
+
+| テストファイル | ケース数 | 内容 |
+|-------------|---------|------|
+| `frontend/__tests__/components/ScoreDisplay.test.tsx` | 5 | 星5つ表示、aria-label、スコアクランプ |
+| `frontend/__tests__/components/ResultCard.test.tsx` | 3 | タイトル・children描画、section要素 |
+| `frontend/__tests__/components/ErrorState.test.tsx` | 5 | デフォルト/カスタムエラー文、role=alert |
+| `frontend/__tests__/components/LoadingState.test.tsx` | 4 | role=status、aria-live=polite |
+| `frontend/__tests__/components/FortuneCard.test.tsx` | 4 | リンク、無効状態、aria-disabled |
+| `frontend/__tests__/lib/kana-to-romaji.test.ts` | 5 | 基本変換、長音、濁音、外来語音 |
+| `frontend/__tests__/lib/i18n.test.ts` | 5 | 日英辞書取得、全キー一致 |
+
+### E2Eテスト（25 ケース）
+
+| テストファイル | ケース数 | 内容 |
+|-------------|---------|------|
+| `frontend/e2e/home.spec.ts` | 4 | ヒーロー表示、CTA遷移分岐 |
+| `frontend/e2e/profile.spec.ts` | 6 | フォーム表示、バリデーション、保存 |
+| `frontend/e2e/fortune.spec.ts` | 9 | 占術選択、各占い遷移、未登録リダイレクト |
+| `frontend/e2e/navigation.spec.ts` | 6 | ヘッダー、スキップナビ、404、言語切替 |
+
+**テスト合計: 131 ケース（75 + 31 + 25）**

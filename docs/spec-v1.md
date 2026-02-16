@@ -14,6 +14,15 @@
 - タロット占い（3枚引き・フリップアニメーション付き）
 - 占術選択画面
 - 個別占い結果表示
+- 総合運勢ダッシュボード（4占術一括実行 + SVGレーダーチャート）
+- 占い履歴（localStorage保存、最大50件、/history ページ）
+- SNSシェア機能（X/LINE/Facebook/クリップボード）
+- 結果→他占術直接遷移（OtherFortunes コンポーネント）
+- SEO（sitemap.xml, robots.txt, JSON-LD構造化データ）
+- WCAG AA色コントラスト準拠
+- アドバイス文拡充（2〜3文）
+- カタカナ→ローマ字変換精度向上（外来語音対応）
+- パフォーマンス最適化（フォントウェイト指定、DNS prefetch）
 - PWA 対応（manifest.json、アイコン）
 - 多言語対応（日本語 / English）
 - OGP / Twitter Card メタデータ + 動的OG画像生成
@@ -26,7 +35,6 @@
 - 四柱推命、九星気学、手相AI
 - AI総合診断（Claude API連携）
 - 今日の運勢バッチ処理
-- 履歴・お気に入り・SNSシェア
 - DynamoDB / ユーザー認証
 
 ---
@@ -63,7 +71,10 @@
 | 5 | 数秘術結果 | `/fortune/numerology` | 数秘術の結果表示 |
 | 6 | 血液型占い結果 | `/fortune/blood-type` | 血液型占いの結果表示 |
 | 7 | タロット結果 | `/fortune/tarot` | タロット3枚引きの結果表示 |
-| 8 | 404エラー | `/*` (不明パス) | カスタム404ページ |
+| 8 | 総合運勢ダッシュボード | `/fortune/dashboard` | 4占術一括実行 + レーダーチャート |
+| 9 | 占い履歴 | `/history` | 過去の占い結果一覧（最大50件） |
+| 10 | ヘルスチェック | `/health` | フロントエンドヘルスチェック |
+| 11 | 404エラー | `/*` (不明パス) | カスタム404ページ |
 
 ---
 
@@ -78,6 +89,7 @@
 | POST | `/api/fortune/numerology` | 数秘術実行 |
 | POST | `/api/fortune/blood-type` | 血液型占い実行 |
 | POST | `/api/fortune/tarot` | タロット占い実行 |
+| POST | `/api/fortune/dashboard` | 総合ダッシュボード（4占術一括） |
 
 フロントエンドヘルスチェック: `GET /health`（Next.js Route Handler）
 
@@ -190,6 +202,32 @@
 }
 ```
 
+#### POST `/api/fortune/dashboard`
+```json
+// Request
+{
+  "birthday": "1990-05-15",
+  "name": "yamada taro",
+  "bloodType": "A"
+}
+
+// Response
+{
+  "fortuneType": "dashboard",
+  "radar": {
+    "overall": 4,
+    "love": 3,
+    "work": 5,
+    "money": 3
+  },
+  "zodiac": { "sign": "牡牛座", "element": "地", "score": 4, "advice": "..." },
+  "numerology": { "destinyNumber": 3, "personalityTraits": [...], "advice": "..." },
+  "bloodType": { "bloodType": "A", "score": 4, "advice": "..." },
+  "tarot": { "cards": [...], "overallMessage": "..." },
+  "overallAdvice": "今日は全体的にバランスの良い一日です..."
+}
+```
+
 ---
 
 ## 5. 占いロジック詳細
@@ -245,6 +283,19 @@
 
 **出力項目:** 3枚のカード情報（名前・番号・正逆・意味）、総合メッセージ
 
+### 5.5 総合運勢ダッシュボード
+
+**アルゴリズム:**
+1. 4占術（星座・数秘術・血液型・タロット）を一括実行
+2. レーダースコア（1〜5）を以下のロジックで算出:
+   - 総合運: 星座スコア + 血液型スコアの平均
+   - 恋愛運: シード乱数 + タロット「恋人」カードボーナス
+   - 仕事運: シード乱数 + 数秘術の仕事系特性ボーナス
+   - 金運: シード乱数 + ポジティブタロットカードボーナス
+3. 総合アドバイスをスコア平均に基づいて生成
+
+**出力項目:** レーダースコア（4軸）、各占術サマリー、総合アドバイス
+
 ---
 
 ## 6. データ構造（localStorage）
@@ -262,6 +313,22 @@
   }
 }
 ```
+
+### 占い履歴
+```json
+{
+  "key": "fortune-compass-history",
+  "value": [
+    {
+      "fortuneType": "zodiac",
+      "date": "2026-02-17T12:00:00.000Z",
+      "result": { "sign": "牡牛座", "score": 4, ... }
+    }
+  ]
+}
+```
+- 最大50件保持（FIFO）
+- `useFortune` フック内で自動保存
 
 ---
 
@@ -288,29 +355,44 @@ fortune-compass/
 │   │   └── icon-*.svg        # PWA アイコン
 │   └── src/
 │       ├── app/
-│       │   ├── layout.tsx        # ルートレイアウト (OGP, PWA, viewport)
+│       │   ├── layout.tsx        # ルートレイアウト (OGP, PWA, JSON-LD, viewport)
 │       │   ├── page.tsx          # トップページ
 │       │   ├── not-found.tsx     # カスタム404
 │       │   ├── opengraph-image.tsx # 動的OG画像
+│       │   ├── sitemap.ts        # sitemap.xml 生成
+│       │   ├── robots.ts         # robots.txt 生成
 │       │   ├── health/           # ヘルスチェック
 │       │   ├── profile/
 │       │   │   └── page.tsx      # プロフィール入力
+│       │   ├── history/
+│       │   │   └── page.tsx      # 占い履歴一覧
 │       │   └── fortune/
-│       │       ├── page.tsx      # 占術選択
+│       │       ├── page.tsx      # 占術選択（ダッシュボードバナー付き）
+│       │       ├── dashboard/    # 総合運勢ダッシュボード
 │       │       ├── zodiac/       # 星座占い結果
 │       │       ├── numerology/   # 数秘術結果
 │       │       ├── blood-type/   # 血液型占い結果
 │       │       └── tarot/        # タロット結果
 │       ├── components/
-│       │   ├── Header.tsx
+│       │   ├── Header.tsx        # ヘッダー（履歴リンク付き）
 │       │   ├── LanguageSwitcher.tsx # 言語切替
 │       │   ├── motion/           # Framer Motion
 │       │   └── fortune/          # 占い関連
+│       │       ├── FortuneCard.tsx
+│       │       ├── ScoreDisplay.tsx
+│       │       ├── LoadingState.tsx
+│       │       ├── ErrorState.tsx
+│       │       ├── ResultCard.tsx
+│       │       ├── OtherFortunes.tsx  # 他占術ショートカット
+│       │       ├── ShareButtons.tsx   # SNSシェアボタン
+│       │       └── RadarChart.tsx     # SVGレーダーチャート
 │       └── lib/
-│           ├── api-client.ts     # API呼び出し
+│           ├── types.ts          # 型定義
+│           ├── api-client.ts     # API呼び出し（5占術 + ダッシュボード）
 │           ├── storage.ts        # localStorage操作
-│           ├── useFortune.ts     # 占い共通フック
-│           ├── kana-to-romaji.ts # カタカナ→ローマ字変換
+│           ├── useFortune.ts     # 占い共通フック（履歴自動保存付き）
+│           ├── kana-to-romaji.ts # カタカナ→ローマ字変換（外来語音対応）
+│           ├── history.ts        # 占い履歴管理（localStorage）
 │           └── i18n/             # 多言語対応 (ja/en)
 ├── backend/
 │   ├── package.json
@@ -319,6 +401,11 @@ fortune-compass/
 │   │   ├── index.ts          # Express (:8080) + ヘルスチェック
 │   │   ├── routes/
 │   │   ├── services/
+│   │   │   ├── zodiac.ts
+│   │   │   ├── numerology.ts
+│   │   │   ├── blood-type.ts
+│   │   │   ├── tarot.ts
+│   │   │   └── dashboard.ts     # ダッシュボード（4占術統合）
 │   │   └── data/
 │   └── __tests__/            # テスト (75ケース)
 └── docs/

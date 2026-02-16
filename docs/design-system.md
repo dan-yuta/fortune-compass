@@ -22,8 +22,8 @@
 | 用途 | HEX | 使用箇所 |
 |------|-----|---------|
 | テキスト（プライマリ） | `#f0edf6` | 見出し、本文 |
-| テキスト（セカンダリ） | `#a89ec4` | 補足テキスト、ラベル |
-| テキスト（ミュート） | `#6b6183` | プレースホルダー、無効状態 |
+| テキスト（セカンダリ） | `#b8b0d0` | 補足テキスト、ラベル |
+| テキスト（ミュート） | `#8a80a0` | プレースホルダー、無効状態 |
 
 ### グラデーション
 ```css
@@ -174,6 +174,12 @@ Tailwind CSSのデフォルトスペーシングスケールを使用。
 | 保存 | `Save` |
 | 言語切替 | `Globe` |
 | コンパス (404) | `Compass` |
+| ダッシュボード | `LayoutDashboard` |
+| 履歴 | `Clock` |
+| シェア | `Share2` |
+| コピー | `Copy` |
+| チェック | `Check` |
+| きらめき | `Sparkles` |
 
 ---
 
@@ -215,6 +221,52 @@ Framer Motion を導入済み。CSS トランジションと併用。
 | PageTransition | `components/motion/PageTransition.tsx` | ページフェード+スライド |
 | StaggerContainer / StaggerItem | `components/motion/StaggerChildren.tsx` | 順次表示 |
 | CardReveal | `components/motion/CardReveal.tsx` | カードスケール+フェード |
+
+---
+
+## 9. Phase 7/8 追加コンポーネント
+
+### 9.1 OtherFortunes（他占術ショートカット）
+
+結果ページ下部に表示される、他3占術へのショートカットカード。
+
+- ファイル: `components/fortune/OtherFortunes.tsx`
+- 表示: 残り3占術をグリッド表示（1列 → sm:3列）
+- 各カード: アイコン + 占術名 + リンク
+- `current` プロパティで現在の占術を除外
+
+### 9.2 ShareButtons（SNSシェア）
+
+占い結果をSNSでシェアするボタン群。
+
+- ファイル: `components/fortune/ShareButtons.tsx`
+- 4つのシェア先: X(Twitter) / LINE / Facebook / クリップボード
+- クリップボード: Web Share API → フォールバックとして navigator.clipboard
+- コピー成功時に「コピーしました」フィードバック表示（2秒で消える）
+- スタイル: `bg-twilight` ボタン、ホバーで `bg-mystic-purple/20`
+
+### 9.3 RadarChart（レーダーチャート）
+
+ダッシュボード用のカスタムSVGレーダーチャート。
+
+- ファイル: `components/fortune/RadarChart.tsx`
+- 4軸: 総合運 / 恋愛運 / 仕事運 / 金運
+- 5段階グリッド（同心多角形）
+- データポリゴン: `rgba(139, 92, 246, 0.25)` 塗り + `#8b5cf6` 線
+- データポイント: `#8b5cf6` 円（r=4） + `#0f0a1e` ストローク
+- ラベル: 軸名（text-primary）+ スコア値（celestial-gold）
+- 外部ライブラリ不使用（SVG直書き）
+- `role="img"` + `aria-label` でアクセシビリティ対応
+
+### 9.4 ダッシュボードバナー
+
+占術選択画面上部に表示されるダッシュボードへの導線バナー。
+
+- 表示位置: `/fortune` ページ、占術カードの上
+- スタイル: `bg-gradient-to-r from-mystic-purple/20 to-purple-900/20`
+- ボーダー: `border-mystic-purple/30` → ホバーで `/60`
+- アイコン: `LayoutDashboard`（celestial-gold）
+- ホバー: `-translate-y-0.5` + ボーダー色変化
 
 ---
 

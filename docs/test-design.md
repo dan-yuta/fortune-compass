@@ -22,9 +22,10 @@ backend/
     │   ├── zodiac.test.ts        # 星座占いロジック
     │   ├── numerology.test.ts    # 数秘術ロジック
     │   ├── blood-type.test.ts    # 血液型占いロジック
-    │   └── tarot.test.ts         # タロットロジック
+    │   ├── tarot.test.ts         # タロットロジック
+    │   └── dashboard.test.ts     # ダッシュボードロジック
     └── routes/
-        └── fortune.test.ts       # APIエンドポイント
+        └── fortune.test.ts       # APIエンドポイント（5エンドポイント）
 
 frontend/
 ├── __tests__/
@@ -200,6 +201,25 @@ frontend/
 
 ---
 
+## 5.5 単体テスト: ダッシュボード（dashboard.service）
+
+### TC-D001: ダッシュボード結果
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-D001-01 | レーダースコア（overall）が1〜5の範囲 | 1 <= radar.overall <= 5 |
+| TC-D001-02 | レーダースコア（love）が1〜5の範囲 | 1 <= radar.love <= 5 |
+| TC-D001-03 | レーダースコア（work）が1〜5の範囲 | 1 <= radar.work <= 5 |
+| TC-D001-04 | レーダースコア（money）が1〜5の範囲 | 1 <= radar.money <= 5 |
+| TC-D001-05 | zodiac サマリーが含まれる | zodiac.sign, zodiac.score 等が存在 |
+| TC-D001-06 | numerology サマリーが含まれる | numerology.destinyNumber 等が存在 |
+| TC-D001-07 | bloodType ありの場合にサマリーが含まれる | bloodType.bloodType 等が存在 |
+| TC-D001-08 | bloodType なしの場合に null | bloodType === null |
+| TC-D001-09 | tarot サマリーが含まれる | tarot.cards.length === 3 |
+| TC-D001-10 | overallAdvice が空でない文字列 | typeof === "string" && length > 0 |
+
+---
+
 ## 6. APIテスト（supertest）
 
 ### TC-API001: 星座占いエンドポイント
@@ -231,6 +251,14 @@ frontend/
 | テストID | Method/Path | リクエスト | 期待 | 検証 |
 |---------|------------|-----------|------|------|
 | TC-API004-01 | POST /api/fortune/tarot | `{}` | 200 | 正常レスポンス |
+
+### TC-API005: ダッシュボードエンドポイント
+
+| テストID | Method/Path | リクエスト | 期待 | 検証 |
+|---------|------------|-----------|------|------|
+| TC-API005-01 | POST /api/fortune/dashboard | `{"birthday":"1990-05-15","name":"yamada","bloodType":"A"}` | 200 | 正常レスポンス（全フィールド） |
+| TC-API005-02 | POST /api/fortune/dashboard | `{"birthday":"1990-05-15"}` | 200 | name/bloodType省略可 |
+| TC-API005-03 | POST /api/fortune/dashboard | `{}` | 400 | バリデーションエラー |
 
 ---
 
