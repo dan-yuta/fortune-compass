@@ -1,0 +1,88 @@
+{
+  "Comment": "EC2 Stop Workflow — Verify current state, stop instance, wait for stopped confirmation",
+  "StartAt": "GetCurrentState",
+  "States": {
+    "GetCurrentState": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "status"
+      },
+      "ResultPath": "$.instanceStatus",
+      "Next": "CheckIfAlreadyStopped"
+    },
+    "CheckIfAlreadyStopped": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "stopped",
+          "Next": "AlreadyStopped"
+        },
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "running",
+          "Next": "StopInstance"
+        }
+      ],
+      "Default": "WaitForStableState"
+    },
+    "WaitForStableState": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "GetCurrentState"
+    },
+    "AlreadyStopped": {
+      "Type": "Pass",
+      "Parameters": {
+        "status": "completed",
+        "message": "Instance is already stopped",
+        "instanceState": "stopped"
+      },
+      "End": true
+    },
+    "StopInstance": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "stop"
+      },
+      "ResultPath": "$.stopResult",
+      "Next": "WaitForStopping"
+    },
+    "WaitForStopping": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "CheckInstanceStopped"
+    },
+    "CheckInstanceStopped": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "status"
+      },
+      "ResultPath": "$.instanceStatus",
+      "Next": "IsStopped"
+    },
+    "IsStopped": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "stopped",
+          "Next": "StopComplete"
+        }
+      ],
+      "Default": "WaitForStopping"
+    },
+    "StopComplete": {
+      "Type": "Pass",
+      "Parameters": {
+        "status": "completed",
+        "message": "EC2 instance stopped successfully",
+        "instanceState": "stopped"
+      },
+      "End": true
+    }
+  }
+}

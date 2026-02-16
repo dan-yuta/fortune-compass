@@ -39,7 +39,7 @@
 | フロントエンド | Next.js 16.1.6 (App Router) + Tailwind CSS v4 |
 | バックエンド | Express 5.x + TypeScript |
 | インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC) |
-| IaC | Terraform（35 リソース） |
+| IaC | Terraform（43 リソース） |
 | CI/CD | GitHub Actions（OIDC 認証） |
 | テスト (Backend) | Jest + Supertest（75 テストケース / カバレッジ 90.17%） |
 | テスト (Frontend) | Jest + React Testing Library（31 テストケース） |
@@ -1020,7 +1020,11 @@ CloudFront → ブラウザ
 | 8 | S3 | Terraform ステートファイル保存 | < $1 |
 | 9 | DynamoDB | Terraform ステートロック | < $1 |
 | 10 | IAM | ロール・ポリシー管理 | $0 |
-| | **合計** | | **~$13/月** |
+| 11 | Lambda | EC2 ライフサイクル管理（管理コンソール） | $0（無料枠内） |
+| 12 | Step Functions | EC2 起動・停止ワークフロー | $0（無料枠内） |
+| 13 | API Gateway | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
+| 14 | S3（管理コンソール） | 管理コンソール静的ウェブサイト | $0（無料枠内） |
+| | **合計** | | **~$13/月**（EC2 停止時は ~$4/月） |
 
 ### ネットワーク構成
 
@@ -1076,7 +1080,10 @@ infra/terraform/
 │   ├── ecs/             # Cluster, Task Def x2, Service x2,
 │   │                    # IAM Role x2, Log Group x2, SG (11リソース)
 │   │
-│   └── cloudfront/      # CloudFront Distribution (1リソース)
+│   ├── cloudfront/      # CloudFront Distribution (1リソース)
+│   │
+│   └── management/      # Lambda, Step Functions x2, API Gateway,
+│                        # S3, IAM Role/Policy 等 (28リソース)
 │
 └── environments/
     └── dev/             # モジュール結合 + 変数 + State設定
@@ -1086,7 +1093,25 @@ infra/terraform/
         └── backend.tf   #   S3 State設定
 ```
 
-**合計: 35 リソース**
+**合計: 43 リソース**（management モジュール 28 リソース追加）
+
+### Management Console（EC2 ライフサイクル管理）
+
+EC2 を未使用時に停止してコストを削減するための管理コンソール。
+
+```
+管理者 → S3 静的サイト → API Gateway (API Key) → Step Functions → Lambda → EC2
+```
+
+| コンポーネント | 役割 |
+|--------------|------|
+| Lambda (Python 3.12) | EC2 start/stop/status/health-check/ecr-refresh |
+| Step Functions x2 | 起動ワークフロー（起動→待機→ヘルスチェック→ECR refresh）/ 停止ワークフロー |
+| API Gateway | REST API + API Key 認証 |
+| S3 Static Website | 管理コンソール UI |
+| SSM Agent (EC2) | リモートコマンド実行 |
+
+**管理コンソール URL**: http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com
 
 ---
 
@@ -1293,6 +1318,7 @@ GitHub Actions                        AWS
 | `infra/terraform/modules/alb/{main,variables,outputs}.tf` | ALB, Target Group, Listener |
 | `infra/terraform/modules/ecs/{main,variables,outputs}.tf` | ECS Cluster, Service, Task Def |
 | `infra/terraform/modules/cloudfront/{main,variables,outputs}.tf` | CloudFront Distribution |
+| `infra/terraform/modules/management/{main,variables,outputs}.tf` | Lambda, Step Functions, API Gateway, S3 (管理コンソール) |
 | `infra/terraform/environments/dev/main.tf` | モジュール結合 |
 | `infra/terraform/environments/dev/variables.tf` | 変数定義 |
 | `infra/terraform/environments/dev/outputs.tf` | 出力定義 |

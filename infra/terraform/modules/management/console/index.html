@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fortune Compass - Management Console</title>
+  <style>
+    :root {
+      --bg-primary: #0f0a1a;
+      --bg-card: #1a1128;
+      --bg-card-hover: #231740;
+      --text-primary: #e8e0f0;
+      --text-secondary: #b8b0d0;
+      --text-muted: #8a80a0;
+      --accent-purple: #8b5cf6;
+      --accent-gold: #d4a574;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --border: #2d2145;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.25rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+    }
+
+    .status-row:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .status-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .status-value {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-running { background: rgba(34,197,94,0.15); color: var(--success); }
+    .badge-stopped { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-pending { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .badge-unknown { background: rgba(138,128,160,0.15); color: var(--text-muted); }
+
+    .badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge-running::before { animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.25rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: white;
+    }
+
+    .btn-start:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+    }
+
+    .btn-stop {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: white;
+    }
+
+    .btn-stop:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+    }
+
+    .btn-refresh {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-refresh:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .log-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .log-card h3 {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .log-entries {
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      padding: 0.2rem 0;
+      color: var(--text-secondary);
+    }
+
+    .log-entry .time {
+      color: var(--text-muted);
+      margin-right: 0.5rem;
+    }
+
+    .log-entry.success { color: var(--success); }
+    .log-entry.error { color: var(--danger); }
+    .log-entry.info { color: var(--accent-purple); }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .app-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .app-link a {
+      color: var(--accent-purple);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .app-link a:hover {
+      text-decoration: underline;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,10,26,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loading-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      max-width: 320px;
+    }
+
+    .loading-content .spinner {
+      width: 32px;
+      height: 32px;
+      border-width: 3px;
+      border-top-color: var(--accent-purple);
+      margin-bottom: 1rem;
+    }
+
+    .loading-content p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Fortune Compass</h1>
+      <p>Management Console</p>
+    </header>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">EC2 Status</span>
+        <span id="state-badge" class="badge badge-unknown">Loading...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Instance ID</span>
+        <span id="instance-id" class="status-value" style="color:var(--text-muted);font-size:0.8rem;">---</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Public IP</span>
+        <span id="public-ip" class="status-value">---</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">App Health</span>
+        <span id="health-status" class="status-value" style="color:var(--text-muted);">---</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-start" class="btn btn-start" disabled onclick="startInstance()">
+        Start
+      </button>
+      <button id="btn-stop" class="btn btn-stop" disabled onclick="stopInstance()">
+        Stop
+      </button>
+    </div>
+
+    <button class="btn btn-refresh" onclick="refreshStatus()">
+      Refresh Status
+    </button>
+
+    <div class="log-card">
+      <h3>Activity Log</h3>
+      <div id="log-entries" class="log-entries">
+        <div class="log-entry info"><span class="time">--:--:--</span>Initializing...</div>
+      </div>
+    </div>
+
+    <div class="app-link">
+      <a href="${app_url}" target="_blank" id="app-link">Open Fortune Compass</a>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p id="loading-message">Processing...</p>
+    </div>
+  </div>
+
+  <script>
+    const API_ENDPOINT = '${api_endpoint}';
+    const API_KEY = '${api_key}';
+
+    let currentState = 'unknown';
+    let polling = null;
+
+    function log(message, type = '') {
+      const entries = document.getElementById('log-entries');
+      const time = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + type;
+      entry.innerHTML = '<span class="time">' + time + '</span>' + message;
+      entries.prepend(entry);
+      if (entries.children.length > 50) {
+        entries.removeChild(entries.lastChild);
+      }
+    }
+
+    function showLoading(message) {
+      document.getElementById('loading-message').textContent = message;
+      document.getElementById('loading-overlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.remove('active');
+    }
+
+    function updateUI(data) {
+      const state = data.state || 'unknown';
+      currentState = state;
+
+      const badge = document.getElementById('state-badge');
+      const badgeMap = {
+        running: ['badge-running', 'Running'],
+        stopped: ['badge-stopped', 'Stopped'],
+        pending: ['badge-pending', 'Starting...'],
+        stopping: ['badge-pending', 'Stopping...'],
+        'shutting-down': ['badge-pending', 'Shutting down...'],
+      };
+      const [cls, text] = badgeMap[state] || ['badge-unknown', state];
+      badge.className = 'badge ' + cls;
+      badge.textContent = text;
+
+      document.getElementById('instance-id').textContent = data.instanceId || '---';
+      document.getElementById('public-ip').textContent = data.publicIp || '---';
+
+      const btnStart = document.getElementById('btn-start');
+      const btnStop = document.getElementById('btn-stop');
+      btnStart.disabled = state !== 'stopped';
+      btnStop.disabled = state !== 'running';
+    }
+
+    async function apiCall(action) {
+      const resp = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+        },
+        body: JSON.stringify({ action }),
+      });
+      return resp.json();
+    }
+
+    async function refreshStatus() {
+      try {
+        const data = await apiCall('status');
+        updateUI(data);
+        log('Status: ' + (data.state || 'unknown'), 'info');
+
+        if (data.state === 'running') {
+          const health = await apiCall('check_health');
+          const el = document.getElementById('health-status');
+          if (health.healthy) {
+            el.textContent = 'Healthy';
+            el.style.color = 'var(--success)';
+          } else {
+            el.textContent = 'Unhealthy';
+            el.style.color = 'var(--danger)';
+          }
+        } else {
+          const el = document.getElementById('health-status');
+          el.textContent = '---';
+          el.style.color = 'var(--text-muted)';
+        }
+      } catch (e) {
+        log('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function startInstance() {
+      if (!confirm('EC2 instance is starting.\\nAfter pressing OK, it takes about 2 minutes.')) return;
+
+      showLoading('Starting EC2 instance...');
+      log('Start requested', 'info');
+
+      try {
+        const data = await apiCall('start');
+        log(data.message || 'Start command sent', 'success');
+        updateUI(data);
+
+        // Poll until running + healthy
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        polling = setInterval(async () => {
+          attempts++;
+          try {
+            const status = await apiCall('status');
+            updateUI(status);
+
+            if (status.state === 'running') {
+              document.getElementById('loading-message').textContent = 'Waiting for application...';
+              const health = await apiCall('check_health');
+              const el = document.getElementById('health-status');
+
+              if (health.healthy) {
+                el.textContent = 'Healthy';
+                el.style.color = 'var(--success)';
+                clearInterval(polling);
+                polling = null;
+                hideLoading();
+                log('Application is healthy! Ready to use.', 'success');
+                return;
+              } else {
+                el.textContent = 'Starting...';
+                el.style.color = 'var(--warning)';
+              }
+            }
+          } catch (e) {
+            log('Poll error: ' + e.message, 'error');
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(polling);
+            polling = null;
+            hideLoading();
+            log('Timeout waiting for healthy state. Check manually.', 'error');
+          }
+        }, 10000);
+
+      } catch (e) {
+        hideLoading();
+        log('Start failed: ' + e.message, 'error');
+      }
+    }
+
+    async function stopInstance() {
+      if (!confirm('Are you sure to stop the EC2 instance?\\nThe application will become unavailable.')) return;
+
+      showLoading('Stopping EC2 instance...');
+      log('Stop requested', 'info');
+
+      try {
+        const data = await apiCall('stop');
+        log(data.message || 'Stop command sent', 'success');
+        updateUI(data);
+
+        polling = setInterval(async () => {
+          try {
+            const status = await apiCall('status');
+            updateUI(status);
+            if (status.state === 'stopped') {
+              clearInterval(polling);
+              polling = null;
+              hideLoading();
+              log('Instance stopped successfully.', 'success');
+              document.getElementById('health-status').textContent = '---';
+              document.getElementById('health-status').style.color = 'var(--text-muted)';
+            }
+          } catch (e) {
+            log('Poll error: ' + e.message, 'error');
+          }
+        }, 5000);
+
+      } catch (e) {
+        hideLoading();
+        log('Stop failed: ' + e.message, 'error');
+      }
+    }
+
+    // Initial load
+    refreshStatus();
+  </script>
+</body>
+</html>

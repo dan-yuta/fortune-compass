@@ -109,6 +109,9 @@
 | インフラ | Terraform | >= 1.5 |
 | コンテナ | Docker + k3s on EC2 | - |
 | CI/CD | GitHub Actions | - |
+| サーバーレス | AWS Lambda (Python 3.12) | EC2 管理 |
+| ワークフロー | AWS Step Functions | EC2 起動・停止 |
+| API 管理 | Amazon API Gateway | REST API |
 
 ## ディレクトリ構成
 
@@ -133,7 +136,8 @@ fortune-compass/
 │   │   ├── networking/       #   VPC, Subnets
 │   │   ├── ecr/              #   ECR リポジトリ
 │   │   ├── ec2-k3s/          #   EC2, k3s, Security Group
-│   │   └── cloudfront/       #   CloudFront CDN
+│   │   ├── cloudfront/       #   CloudFront CDN
+│   │   └── management/       #   Lambda, Step Functions, API Gateway, S3 (管理コンソール)
 │   └── environments/
 │       └── dev/              #   開発環境設定
 │
@@ -257,6 +261,22 @@ fortune-compass/
                 ├── dictionaries.ts # 辞書 (ja/en)
                 └── context.tsx     # I18nProvider
 ```
+
+## Management Console（EC2 ライフサイクル管理）
+
+EC2 を未使用時に停止し、コンピュートコストを削減するための管理コンソール。
+
+| コンポーネント | 説明 |
+|--------------|------|
+| Lambda (Python 3.12) | EC2 start/stop/status/health-check/ecr-refresh |
+| Step Functions | 起動ワークフロー / 停止ワークフロー |
+| API Gateway | REST API（API Key 認証） |
+| S3 Static Website | 管理コンソール UI |
+
+**管理コンソール URL**: http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com
+**API エンドポイント**: https://4s30b1da8k.execute-api.ap-northeast-1.amazonaws.com/prod/manage
+
+EC2 停止時のコスト: ~$4/月（EBS + ECR + S3 のみ。EC2 コンピュート ~$9/月 を削減）
 
 ## セットアップ
 
@@ -497,8 +517,9 @@ terraform apply \
 
 | リソース | 概算 |
 |---------|------|
-| EC2 t3.small (k3s) | ~$9 |
+| EC2 t3.small (k3s) | ~$9（停止時 $0） |
 | EBS 20GB (gp3) | ~$2 |
 | CloudFront | ~$0（無料枠内） |
 | その他 (ECR, CloudWatch, S3) | ~$3 |
-| **合計** | **~$11/月** |
+| Management Console (Lambda, Step Functions, API GW, S3) | $0（無料枠内） |
+| **合計** | **~$14/月**（EC2 停止時は ~$5/月） |

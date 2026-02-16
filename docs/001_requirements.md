@@ -201,6 +201,9 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | CI/CD | GitHub Actions | OIDC認証 → ECR → SSH + kubectl |
 | CDN / HTTPS | Amazon CloudFront | - |
 | モニタリング | CloudWatch Logs | 14日保持 |
+| サーバーレス | AWS Lambda (Python 3.12) | EC2 管理用 |
+| ワークフロー | AWS Step Functions | EC2 起動・停止ワークフロー |
+| API 管理 | Amazon API Gateway | 管理コンソール REST API |
 
 ### 5.3 AWS サービス構成
 
@@ -212,7 +215,9 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | CloudFront | HTTPS終端 + CDN | ~$0（無料枠内） |
 | ECR | Docker イメージ保存（2リポジトリ） | ~$1 |
 | S3 + DynamoDB | Terraform ステート管理 | < $1 |
-| **合計** | | **~$13/月** |
+| Lambda + Step Functions + API Gateway | EC2 管理コンソール | $0（無料枠内） |
+| S3（管理コンソール） | 管理画面ホスティング | $0（無料枠内） |
+| **合計** | | **~$13/月**（EC2 停止時は ~$4/月） |
 
 ---
 
@@ -272,7 +277,7 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 - [x] E2Eテスト（25テスト）
 
 ### Phase 4: インフラ・デプロイ
-- [x] Terraform でAWSインフラ構築（35リソース）
+- [x] Terraform でAWSインフラ構築（43リソース）
 - [x] Docker 化（マルチステージビルド）
 - [x] ECR push + k3s (EC2) デプロイ
 - [x] CloudFront 追加（HTTPS + CDN）
@@ -304,6 +309,14 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 - [x] カスタム404ページ
 - [x] Framer Motion アニメーション
 
+### Phase 11: Management Console
+- [x] Lambda 関数（EC2 start/stop/status/health-check/ECR refresh）
+- [x] Step Functions（起動・停止ワークフロー）
+- [x] API Gateway REST API（API Key 認証）
+- [x] S3 管理コンソール静的ウェブサイト
+- [x] EC2 SSM Agent + ECR token refresh systemd サービス
+- [x] Terraform management モジュール（28 リソース追加）
+
 ### 未実装（将来対応）
 - [ ] AI総合診断（Claude API連携によるテキスト生成）
 - [ ] 今日の運勢バッチ処理
@@ -317,8 +330,9 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 |---------|-------------|
 | Dockerコンテナの基礎 | Dockerfile作成、マルチステージビルド、フロントエンド/バックエンドの2コンテナ構成 |
 | k3s (Kubernetes) でのコンテナデプロイ | Terraform で EC2 作成、k3s + Traefik Ingress でパスベースルーティング |
-| IaC (Terraform) | HCLでのインフラ定義（35リソース）、ステート管理（S3 + DynamoDB） |
+| IaC (Terraform) | HCLでのインフラ定義（43リソース）、ステート管理（S3 + DynamoDB）、モジュール分割 |
 | CI/CD | GitHub ActionsでのDockerビルド → ECRプッシュ → SSH + kubectl デプロイ（OIDC認証） |
 | AI連携 | Claude Vision APIの活用（手相画像解析） |
 | フロントエンド | Next.js App Router、Tailwind CSS v4、Framer Motion、PWA、i18n |
+| サーバーレス | Lambda + Step Functions + API Gateway による EC2 ライフサイクル管理 |
 | テスト | Jest + Supertest（Backend）、React Testing Library（Frontend）、Playwright（E2E） |

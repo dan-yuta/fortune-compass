@@ -33,3 +33,21 @@ output "k3s_ssh_private_key" {
   value       = module.ec2_k3s.private_key_pem
   sensitive   = true
 }
+
+# --- Management ---
+
+output "management_console_url" {
+  description = "Management console URL"
+  value       = module.management.console_url
+}
+
+output "management_api_endpoint" {
+  description = "Management API endpoint"
+  value       = module.management.api_endpoint
+}
+
+output "management_api_key" {
+  description = "Management API key"
+  value       = module.management.api_key
+  sensitive   = true
+}

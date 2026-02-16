@@ -49,6 +49,30 @@ CRONSCRIPT
 chmod +x /usr/local/bin/refresh-ecr-secret.sh
 echo "0 */6 * * * root /usr/local/bin/refresh-ecr-secret.sh >> /var/log/ecr-refresh.log 2>&1" > /etc/cron.d/ecr-refresh
 
+# ---- ECR secret refresh on boot (systemd oneshot) ----
+cat > /etc/systemd/system/ecr-refresh.service << 'SVCUNIT'
+[Unit]
+Description=Refresh ECR pull secret for k3s
+After=k3s.service
+Requires=k3s.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 15
+ExecStart=/usr/local/bin/refresh-ecr-secret.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+SVCUNIT
+systemctl daemon-reload
+systemctl enable ecr-refresh.service
+
+# ---- Install SSM Agent for remote command execution ----
+snap install amazon-ssm-agent --classic
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+
 # ---- Apply Kubernetes manifests ----
 k3s kubectl apply -f - << 'K8S'
 apiVersion: apps/v1

@@ -1,0 +1,166 @@
+{
+  "Comment": "EC2 Start Workflow — Start instance, wait for running, refresh ECR, verify k3s pods, health check",
+  "StartAt": "GetCurrentState",
+  "States": {
+    "GetCurrentState": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "status"
+      },
+      "ResultPath": "$.instanceStatus",
+      "Next": "CheckIfAlreadyRunning"
+    },
+    "CheckIfAlreadyRunning": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "running",
+          "Next": "AlreadyRunning"
+        },
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "stopped",
+          "Next": "StartInstance"
+        }
+      ],
+      "Default": "WaitForStableState"
+    },
+    "WaitForStableState": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "GetCurrentState"
+    },
+    "AlreadyRunning": {
+      "Type": "Pass",
+      "Result": {
+        "message": "Instance is already running",
+        "action": "none"
+      },
+      "ResultPath": "$.result",
+      "Next": "HealthCheck"
+    },
+    "StartInstance": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "start"
+      },
+      "ResultPath": "$.startResult",
+      "Next": "WaitForRunning"
+    },
+    "WaitForRunning": {
+      "Type": "Wait",
+      "Seconds": 20,
+      "Next": "CheckInstanceRunning"
+    },
+    "CheckInstanceRunning": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "status"
+      },
+      "ResultPath": "$.instanceStatus",
+      "Next": "IsRunning"
+    },
+    "IsRunning": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.instanceStatus.state",
+          "StringEquals": "running",
+          "Next": "WaitForK3sBootup"
+        }
+      ],
+      "Default": "WaitForRunning"
+    },
+    "WaitForK3sBootup": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "RefreshEcrToken"
+    },
+    "RefreshEcrToken": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "refresh_ecr"
+      },
+      "ResultPath": "$.ecrResult",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 15,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "WaitForPodsReady"
+    },
+    "WaitForPodsReady": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "HealthCheck"
+    },
+    "HealthCheck": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "check_health"
+      },
+      "ResultPath": "$.healthResult",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 15,
+          "MaxAttempts": 5,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "IsHealthy"
+    },
+    "IsHealthy": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.healthResult.healthy",
+          "BooleanEquals": true,
+          "Next": "StartComplete"
+        }
+      ],
+      "Default": "WaitAndRetryHealth"
+    },
+    "WaitAndRetryHealth": {
+      "Type": "Wait",
+      "Seconds": 20,
+      "Next": "HealthCheckRetry"
+    },
+    "HealthCheckRetry": {
+      "Type": "Task",
+      "Resource": "${lambda_arn}",
+      "Parameters": {
+        "action": "check_health"
+      },
+      "ResultPath": "$.healthResult",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "StartComplete"
+    },
+    "StartComplete": {
+      "Type": "Pass",
+      "Parameters": {
+        "status": "completed",
+        "message": "EC2 instance started and application is healthy",
+        "instanceState.$": "$.instanceStatus.state",
+        "healthy.$": "$.healthResult.healthy"
+      },
+      "End": true
+    }
+  }
+}

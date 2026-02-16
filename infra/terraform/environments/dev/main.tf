@@ -39,6 +39,18 @@ module "ec2_k3s" {
   frontend_image   = "${module.ecr.repository_urls["frontend"]}:latest"
 }
 
+# --- Management (Lambda + Step Functions + API Gateway + S3) ---
+
+module "management" {
+  source = "../../modules/management"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  aws_region      = var.aws_region
+  ec2_instance_id = module.ec2_k3s.instance_id
+  health_check_url = "http://${module.ec2_k3s.public_ip}/api/health"
+}
+
 # --- CloudFront ---
 
 module "cloudfront" {

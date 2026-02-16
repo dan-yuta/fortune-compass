@@ -19,8 +19,13 @@
 | 9 | Amazon S3 | ストレージ | Terraform ステートファイルの保存 | < $1 |
 | 10 | Amazon DynamoDB | データベース | Terraform ステートのロック管理 | < $1 |
 | 11 | AWS IAM | セキュリティ | ロール・ポリシー管理（EC2、CI/CD） | $0 |
+| 12 | AWS Lambda | コンピュート | EC2 ライフサイクル管理（start/stop/status/health-check/ECR refresh） | $0（無料枠内） |
+| 13 | AWS Step Functions | オーケストレーション | EC2 起動・停止ワークフロー（状態遷移管理） | $0（無料枠内） |
+| 14 | Amazon API Gateway | API | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
+| 15 | Amazon S3（管理コンソール） | ホスティング | 管理コンソール静的ウェブサイト | $0（無料枠内） |
+| 16 | AWS Systems Manager (SSM) | 管理 | EC2 へのリモートコマンド実行（ECR トークンリフレッシュ等） | $0 |
 
-**合計: 約 $14/月**
+**合計: 約 $14/月**（管理コンソール関連サービスは全て無料枠内）
 
 ---
 
@@ -184,6 +189,64 @@
 | `fortune-compass-github-actions`* | CI/CD | ECR push, S3/DynamoDB |
 
 *GitHub Actions 用ロールは OIDC 連携（長寿命アクセスキー不使用）。
+
+---
+
+### 2.12 AWS Lambda
+
+**概要**: サーバーレスのコンピュートサービス。コードをアップロードするだけで実行環境を自動管理してくれる。
+
+**本プロジェクトでの役割**:
+- EC2 インスタンスの起動・停止・ステータス確認・ヘルスチェック
+- EC2 上の ECR 認証トークンリフレッシュ（SSM 経由）
+- Python 3.12 ランタイムで実装
+
+**コスト**: 無料枠（月間 100万リクエスト + 40万GB-秒）の範囲内で運用。
+
+---
+
+### 2.13 AWS Step Functions
+
+**概要**: サーバーレスのワークフローオーケストレーションサービス。複数の AWS サービスを順序立てて実行するステートマシンを構築できる。
+
+**本プロジェクトでの役割**:
+- **起動ワークフロー**: EC2 起動 → running 待機 → ヘルスチェック → ECR トークンリフレッシュ
+- **停止ワークフロー**: EC2 停止 → stopped 待機
+
+**コスト**: 無料枠（月間 4,000 状態遷移）の範囲内で運用。
+
+---
+
+### 2.14 Amazon API Gateway
+
+**概要**: REST / HTTP / WebSocket API を作成・管理するフルマネージドサービス。
+
+**本プロジェクトでの役割**:
+- 管理コンソールの REST API エンドポイント（`/prod/manage`）
+- API Key 認証で不正アクセスを防止
+- Lambda / Step Functions の呼び出しをプロキシ
+
+**コスト**: 無料枠（月間 100万 API コール）の範囲内で運用。
+
+---
+
+### 2.15 Amazon S3（管理コンソール）
+
+**概要**: S3 の静的ウェブサイトホスティング機能を使用して、管理コンソールの HTML/CSS/JS を配信。
+
+**本プロジェクトでの役割**:
+- EC2 の起動・停止・ステータス確認を行う管理画面を提供
+- URL: `http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com`
+
+---
+
+### 2.16 AWS Systems Manager (SSM)
+
+**概要**: AWS リソースの運用管理サービス。Run Command 機能で EC2 にリモートコマンドを実行できる。
+
+**本プロジェクトでの役割**:
+- Lambda から EC2 上の ECR 認証トークンリフレッシュコマンドを実行
+- EC2 に SSM Agent をインストールし、SSH 不要でのリモート管理を実現
 
 ---
 

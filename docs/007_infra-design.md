@@ -126,12 +126,13 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 3.6 Terraform モジュール分割
 
-**決定**: 4モジュール構成（networking / ecr / ec2-k3s / cloudfront）+ k8s マニフェスト。
+**決定**: 5モジュール構成（networking / ecr / ec2-k3s / cloudfront / management）+ k8s マニフェスト。
 
 **理由**:
 - ALB / ECS を廃止し、EC2 + k3s に統合したためモジュール数が削減
 - k8s マニフェスト（Deployment, Service, Ingress）は Terraform 外で管理
 - 環境追加（staging / production）時にモジュールを再利用可能
+- management モジュールで EC2 ライフサイクル管理（Lambda, Step Functions, API Gateway, S3）を追加
 
 ---
 
@@ -300,7 +301,8 @@ infra/terraform/
 │   ├── networking/     VPC, Subnets, IGW, Routes
 │   ├── ecr/            ECR リポジトリ x2, ライフサイクルポリシー
 │   ├── ec2-k3s/        EC2, SG, Key Pair, User Data (k3s install)
-│   └── cloudfront/     CloudFront Distribution, Cache Behaviors
+│   ├── cloudfront/     CloudFront Distribution, Cache Behaviors
+│   └── management/     Lambda, Step Functions, API Gateway, S3 (管理コンソール)
 ├── environments/
 │   └── dev/            モジュール結合 + 環境固有設定
 └── k8s/
@@ -319,7 +321,8 @@ infra/terraform/
 | ecr | 4 | ECR Repository x2, Lifecycle Policy x2 |
 | ec2-k3s | 4 | EC2 Instance, SG, Key Pair, EBS Volume |
 | cloudfront | 1 | CloudFront Distribution（3 Cache Behaviors 含む） |
-| **合計** | **15** | |
+| management | 28 | Lambda, Step Functions x2, API Gateway, S3, IAM Role/Policy 等 |
+| **合計** | **43** | |
 
 ### 8.4 主要変数
 
@@ -386,6 +389,7 @@ env:
 
 | 施策 | 削減額 | トレードオフ |
 |-----|-------|------------|
+| Management Console で EC2 停止 | ~-$9 | 未使用時に手動で停止/起動が必要 |
 | EC2 リザーブドインスタンス（1年） | ~-$3 | 前払いが必要 |
 | Spot インスタンス | ~-$6 | インスタンスが中断される可能性 |
 
@@ -447,7 +451,71 @@ kubectl set image deployment/backend backend=<ECR_URI>:<previous_git_sha>
 
 ---
 
-## 12. 今後の拡張
+## 12. EC2 ライフサイクル管理（Management Console）
+
+### 12.1 概要
+
+EC2 インスタンスを使用しないときに停止し、コンピュートコストを削減するための管理コンソール。
+Lambda + Step Functions で EC2 の起動・停止ワークフローを実装し、S3 静的ウェブサイトで管理画面を提供する。
+
+### 12.2 アーキテクチャ
+
+```
+                    管理者
+                      │
+          ┌───────────▼───────────┐
+          │  S3 Static Website    │  ← 管理コンソール UI
+          │  (mgmt-console)       │
+          └───────────┬───────────┘
+                      │ API Key 認証
+          ┌───────────▼───────────┐
+          │  API Gateway          │  ← REST API
+          │  /prod/manage         │
+          └───────────┬───────────┘
+                      │
+          ┌───────────▼───────────┐
+          │  Step Functions       │  ← start / stop ワークフロー
+          │  (State Machine x2)   │
+          └───────────┬───────────┘
+                      │
+          ┌───────────▼───────────┐
+          │  Lambda Function      │  ← EC2 操作
+          │  (Python 3.12)        │     start / stop / status /
+          │                       │     health-check / ecr-refresh
+          └───────────┬───────────┘
+                      │
+          ┌───────────▼───────────┐
+          │  EC2 (k3s)            │  ← SSM Agent + ECR token refresh
+          └───────────────────────┘
+```
+
+### 12.3 主要コンポーネント
+
+| コンポーネント | 説明 |
+|--------------|------|
+| Lambda (Python 3.12) | EC2 start/stop/status/health-check/ECR token refresh を実行 |
+| Step Functions (start) | EC2 起動 → ステータス確認待ち → ヘルスチェック → ECR トークンリフレッシュ |
+| Step Functions (stop) | EC2 停止 → ステータス確認待ち |
+| API Gateway | REST API（API Key 認証）で Step Functions / Lambda を呼び出し |
+| S3 Static Website | 管理コンソール UI（HTML/CSS/JS） |
+| SSM Agent (EC2) | Lambda からのリモートコマンド実行（ECR トークンリフレッシュ等） |
+| ECR token refresh (systemd) | EC2 起動時に自動で ECR 認証トークンを更新する systemd サービス |
+
+### 12.4 URL
+
+| リソース | URL |
+|---------|-----|
+| 管理コンソール | http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com |
+| API エンドポイント | https://4s30b1da8k.execute-api.ap-northeast-1.amazonaws.com/prod/manage |
+
+### 12.5 コスト影響
+
+すべての新サービス（Lambda, Step Functions, API Gateway, S3）は AWS 無料枠内で運用可能（追加コスト $0）。
+EC2 を未使用時に停止することで、コンピュートコスト（~$9/月）をアイドル期間中ほぼ $0 に削減可能。
+
+---
+
+## 13. 今後の拡張
 
 | 項目 | 優先度 | 概要 |
 |-----|-------|------|

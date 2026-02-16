@@ -10,13 +10,13 @@
 | 項目 | 内容 |
 |------|------|
 | プロダクト名 | Fortune Compass |
-| バージョン | v2.0（Phase 9 完了） |
+| バージョン | v2.1（Phase 11 完了） |
 | 目的 | 16占術（4カテゴリ: 定番・誕生日・伝統・特殊）+ 総合ダッシュボードを提供する総合占いWebアプリ |
 | 想定作業時間 | 2〜3時間 |
 | 実行環境 | AWS EC2 + k3s（CloudFront 経由） |
 | 技術スタック | Next.js 16.x + Express 5.x + TypeScript + Tailwind CSS v4 |
 | インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC) |
-| IaC | Terraform |
+| IaC | Terraform（43 リソース） |
 | CI/CD | GitHub Actions |
 
 ---
@@ -195,6 +195,18 @@ M5 結合 + 動作確認（20分）
 | カテゴリ分類UI | ✅ 完了 | 定番/誕生日/伝統/特殊の4カテゴリ |
 | Sitemapに全占術追加 | ✅ 完了 | SEO対策 |
 
+### M10: Phase 11 — Management Console（EC2 ライフサイクル管理）
+| タスク | 状態 | 備考 |
+|--------|------|------|
+| Lambda 関数作成（Python 3.12） | ✅ 完了 | EC2 start/stop/status/health-check/ecr-refresh |
+| Step Functions ステートマシン（start workflow） | ✅ 完了 | 起動→待機→ヘルスチェック→ECR refresh |
+| Step Functions ステートマシン（stop workflow） | ✅ 完了 | 停止→待機 |
+| API Gateway REST API | ✅ 完了 | API Key 認証、Lambda/Step Functions 連携 |
+| S3 静的ウェブサイト（管理コンソール UI） | ✅ 完了 | HTML/CSS/JS |
+| ECR トークンリフレッシュ systemd サービス | ✅ 完了 | EC2 起動時に自動実行 |
+| SSM Agent 設定 | ✅ 完了 | Lambda からのリモートコマンド実行 |
+| Terraform management モジュール | ✅ 完了 | 28 リソース追加（0 destroy） |
+
 ---
 
 ## 7. スコープ外（将来対応）
@@ -221,3 +233,4 @@ M5 結合 + 動作確認（20分）
 | 2026-02-17 | M8 追加。Phase 8 総合運勢ダッシュボード全タスク完了、デプロイ成功 |
 | 2026-02-17 | スコープ外を更新。実装済み項目（履歴・SNSシェア・E2E・多言語・PWA）を除外 |
 | 2026-02-17 | M9 追加。Phase 9 占術拡充（12占術追加）完了、全ドキュメント更新 |
+| 2026-02-17 | M10 追加。Phase 11 Management Console（EC2 ライフサイクル管理）完了。Terraform 28 リソース追加 |
