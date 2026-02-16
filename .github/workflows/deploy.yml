@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy to k3s
 
 on:
   push:
@@ -65,16 +65,37 @@ jobs:
             frontend/
           docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend --all-tags
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: infra/terraform/environments/dev
-        run: terraform init
-
-      - name: Terraform Apply
-        working-directory: infra/terraform/environments/dev
+      - name: Deploy to k3s via SSH
+        uses: appleboy/ssh-action@v1
         env:
-          TF_VAR_frontend_image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend:${{ github.sha }}
-          TF_VAR_backend_image: ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend:${{ github.sha }}
-        run: terraform apply -auto-approve
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,IMAGE_TAG,AWS_REGION
+          script: |
+            # Refresh ECR pull secret
+            TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
+            sudo k3s kubectl create secret docker-registry ecr-secret \
+              --docker-server=$ECR_REGISTRY \
+              --docker-username=AWS \
+              --docker-password="$TOKEN" \
+              -n fortune-compass \
+              --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+
+            # Update deployment images
+            sudo k3s kubectl set image deployment/backend \
+              backend=$ECR_REGISTRY/fortune-compass-dev-backend:$IMAGE_TAG \
+              -n fortune-compass
+            sudo k3s kubectl set image deployment/frontend \
+              frontend=$ECR_REGISTRY/fortune-compass-dev-frontend:$IMAGE_TAG \
+              -n fortune-compass
+
+            # Wait for rollout
+            sudo k3s kubectl rollout status deployment/backend -n fortune-compass --timeout=120s
+            sudo k3s kubectl rollout status deployment/frontend -n fortune-compass --timeout=120s
+
+            # Show status
+            sudo k3s kubectl get pods -n fortune-compass

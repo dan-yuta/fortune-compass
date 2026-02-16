@@ -107,7 +107,7 @@
 | E2E テスト | Playwright | 1.58.x |
 | モノレポ管理 | concurrently | 9.x |
 | インフラ | Terraform | >= 1.5 |
-| コンテナ | Docker + ECS Fargate | - |
+| コンテナ | Docker + k3s on EC2 | - |
 | CI/CD | GitHub Actions | - |
 
 ## ディレクトリ構成
@@ -130,13 +130,14 @@ fortune-compass/
 │
 ├── infra/terraform/          # AWS インフラ (Terraform)
 │   ├── modules/
-│   │   ├── networking/       #   VPC, Subnets, NAT GW
+│   │   ├── networking/       #   VPC, Subnets
 │   │   ├── ecr/              #   ECR リポジトリ
-│   │   ├── alb/              #   ALB, Target Groups
-│   │   ├── ecs/              #   ECS Cluster, Services
+│   │   ├── ec2-k3s/          #   EC2, k3s, Security Group
 │   │   └── cloudfront/       #   CloudFront CDN
 │   └── environments/
 │       └── dev/              #   開発環境設定
+│
+├── k8s/                        #   Kubernetes マニフェスト
 │
 ├── backend/                  # Express APIサーバー
 │   ├── src/
@@ -427,41 +428,28 @@ cd backend && npm run build
 ### インフラ構成図
 
 ```
-                    ┌─────────────┐
-                    │  Internet   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │ CloudFront  │  ← HTTPS 終端 + 静的アセットキャッシュ
-                    │   (CDN)     │
-                    └──────┬──────┘
-                           │ HTTP (origin)
-                    ┌──────▼──────┐
-                    │     ALB     │  ← Public Subnets (2 AZs)
-                    │   (port 80) │
-                    └──┬───────┬──┘
-         /api/*        │       │        /*
-          ┌────────────┘       └────────────┐
-          ▼                                 ▼
-┌─────────────────┐              ┌─────────────────┐
-│  ECS Service    │              │  ECS Service    │
-│  Backend        │              │  Frontend       │
-│  Express :8080  │              │  Next.js :3000  │
-│  0.25 vCPU      │              │  0.25 vCPU      │
-│  512 MB         │              │  512 MB         │
-└────────┬────────┘              └────────┬────────┘
-         │      Private Subnets (2 AZs)   │
-         └────────────┬───────────────────┘
-                      │
-               ┌──────▼──────┐
-               │ NAT Gateway │  → Internet (ECR pull等)
-               └─────────────┘
+┌─────────────────────────────────────────────┐
+│                  CloudFront                  │  ← HTTPS 終端 + CDN
+│          (d71oywvumn06c.cloudfront.net)       │
+└──────────────────────┬──────────────────────┘
+                       │ HTTP
+┌──────────────────────▼──────────────────────┐
+│              EC2 (t3.small)                  │  ← Public Subnet
+│  ┌────────────────────────────────────────┐  │
+│  │         k3s + Traefik Ingress          │  │
+│  │   /api/* → backend:8080                │  │
+│  │   /*     → frontend:3000               │  │
+│  ├────────────────────────────────────────┤  │
+│  │  Pod: backend   │  Pod: frontend       │  │
+│  │  (Express 5.x)  │  (Next.js 16.1.6)   │  │
+│  └────────────────────────────────────────┘  │
+└──────────────────────────────────────────────┘
 ```
 
-CloudFront → ALB → ECS の3層構成:
-- CloudFront が HTTPS を終端し、静的アセットをキャッシュ
-- ALB がパスベースでルーティング: `/api/*` → Backend, `/*` → Frontend
-- ECS Fargate が Private Subnet 上でコンテナを実行
+CloudFront → EC2 (k3s) の2層構成:
+- CloudFront が HTTPS 終端と静的アセットキャッシュ
+- k3s の Traefik Ingress がパスベースルーティング: `/api/*` → Backend, `/*` → Frontend
+- EC2 (t3.small) が Public Subnet 上で k3s クラスタを実行
 
 ### デプロイ手順
 
@@ -509,9 +497,8 @@ terraform apply \
 
 | リソース | 概算 |
 |---------|------|
-| Fargate (2タスク) | ~$15 |
-| ALB | ~$18 |
-| NAT Gateway | ~$32 |
+| EC2 t3.small (k3s) | ~$9 |
+| EBS 20GB (gp3) | ~$2 |
 | CloudFront | ~$0（無料枠内） |
 | その他 (ECR, CloudWatch, S3) | ~$3 |
-| **合計** | **~$68/月** |
+| **合計** | **~$11/月** |

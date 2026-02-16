@@ -2,7 +2,7 @@
 
 ## 1. スコープ
 
-総合占いWebアプリケーション。AWS ECS Fargate 上で本番稼働中。
+総合占いWebアプリケーション。AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 
 **URL**: https://d71oywvumn06c.cloudfront.net
 
@@ -40,7 +40,7 @@
 - OGP / Twitter Card メタデータ + 動的OG画像生成
 - カスタム404ページ
 - Framer Motion アニメーション（ページ遷移、カード表示）
-- Docker 化 + AWS ECS Fargate デプロイ
+- Docker 化 + AWS EC2 + k3s デプロイ
 - GitHub Actions CI/CD
 
 ### 未実装（将来対応）
@@ -62,8 +62,8 @@
 | テスト (Backend) | Jest + Supertest | 30.x |
 | テスト (Frontend) | Jest + React Testing Library | 30.x / 16.x |
 | E2E テスト | Playwright (Chromium) | 1.58.x |
-| インフラ | Terraform + AWS ECS Fargate | >= 1.5 |
-| CI/CD | GitHub Actions (OIDC → ECR → ECS) | - |
+| インフラ | Terraform + AWS EC2 + k3s | >= 1.5 |
+| CI/CD | GitHub Actions (OIDC → ECR → SSH + kubectl) | - |
 | 開発実行 | `npm run dev`（concurrentlyで同時起動） | - |
 
 - フロントエンド: ポート 3000
@@ -107,7 +107,7 @@
 
 | Method | Path | 概要 |
 |--------|------|------|
-| GET | `/api/health` | ヘルスチェック（ALB用） |
+| GET | `/api/health` | ヘルスチェック（k3s readiness probe 用） |
 | POST | `/api/fortune/zodiac` | 星座占い実行 |
 | POST | `/api/fortune/numerology` | 数秘術実行 |
 | POST | `/api/fortune/blood-type` | 血液型占い実行 |
@@ -723,8 +723,8 @@ cd frontend && npm run test:e2e
 
 ## 10. デプロイ
 
-AWS ECS Fargate + CloudFront 構成。GitHub Actions で CI/CD。
+AWS EC2 + k3s + CloudFront 構成。GitHub Actions で CI/CD。
 
 - `master` ブランチへの push で自動デプロイ
-- バックエンドテスト → Docker ビルド → ECR push → Terraform apply
+- バックエンドテスト → Docker ビルド → ECR push → SSH + kubectl set image
 - URL: https://d71oywvumn06c.cloudfront.net

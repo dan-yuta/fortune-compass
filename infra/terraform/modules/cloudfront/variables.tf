@@ -6,6 +6,7 @@ variable "environment" {
   type = string
 }
 
-variable "alb_dns_name" {
-  type = string
+variable "origin_domain" {
+  type        = string
+  description = "Origin domain name (EC2 public DNS or ALB DNS)"
 }

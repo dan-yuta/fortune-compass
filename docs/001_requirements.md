@@ -7,13 +7,13 @@
 
 ### 1.2 概要
 16種の占術（4カテゴリ: 定番・誕生日・伝統・特殊）を統合し、総合運勢ダッシュボードを提供するWebアプリケーション。
-AWS ECS Fargate 上で本番稼働中。
+AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 
 **URL**: https://d71oywvumn06c.cloudfront.net
 
 ### 1.3 目的
 - ユーザーに多角的な占い体験を提供する
-- Docker / AWS ECS (Fargate) を活用したコンテナデプロイの学習
+- Docker / k3s (Kubernetes) を活用したコンテナデプロイの学習
 - Terraform による IaC の実践
 - GitHub Actions による CI/CD パイプラインの構築
 
@@ -144,7 +144,7 @@ AWS ECS Fargate 上で本番稼働中。
 
 ### 4.4 可用性
 - 目標稼働率: 99%（学習用途のため厳密なSLAは設けない）
-- ECS Fargateのタスク数: 最小1、最大3（オートスケーリング）
+- k3s Pod レプリカ数: 各1（EC2 t3.small 上で実行）
 
 ### 4.5 セキュリティ
 - HTTPS通信必須（CloudFront で終端）
@@ -167,15 +167,16 @@ AWS ECS Fargate 上で本番稼働中。
 [CloudFront] ── HTTPS 終端 + 静的アセットキャッシュ
     |
     v
-[ALB] ── パスベースルーティング
+[EC2 (k3s)] ── Public Subnet
     |
-    ├── /* → [Frontend Service]  (Next.js 16.x コンテナ)
-    └── /api/* → [Backend Service]   (Express 5.x コンテナ)
+    [Traefik Ingress] ── パスベースルーティング
+    |
+    ├── /* → [Frontend Pod]  (Next.js 16.x コンテナ)
+    └── /api/* → [Backend Pod]   (Express 5.x コンテナ)
                     |
                     └── [Claude Vision API] (手相AI占い)
 
-[ECS Fargate Cluster] ── Private Subnets (2 AZ)
-[VPC] ── Public/Private Subnets + NAT Gateway
+[VPC] ── Public Subnet (EC2 配置)
 [ECR] ── Docker イメージ保存
 [CloudWatch Logs] ── コンテナログ（14日保持）
 [S3 + DynamoDB] ── Terraform ステート管理
@@ -196,8 +197,8 @@ AWS ECS Fargate 上で本番稼働中。
 | E2E テスト | Playwright (Chromium) | 1.58.x |
 | IaC | Terraform | >= 1.5 |
 | コンテナ | Docker | マルチステージビルド |
-| オーケストレーション | ECS (Fargate) | サーバーレスコンテナ |
-| CI/CD | GitHub Actions | OIDC認証 → ECR → ECS |
+| オーケストレーション | k3s (Kubernetes) | EC2 上の軽量 K8s |
+| CI/CD | GitHub Actions | OIDC認証 → ECR → SSH + kubectl |
 | CDN / HTTPS | Amazon CloudFront | - |
 | モニタリング | CloudWatch Logs | 14日保持 |
 
@@ -205,15 +206,13 @@ AWS ECS Fargate 上で本番稼働中。
 
 | サービス | 用途 | 月額概算 |
 |---------|------|---------|
-| VPC + Subnets | ネットワーク（2AZ、Public/Private） | $0 |
-| NAT Gateway | Private Subnet からの外向き通信 | ~$32 |
-| ALB | パスベースルーティング | ~$18 |
+| VPC + Subnets | ネットワーク | $0 |
+| EC2 t3.small | k3s クラスタ（2vCPU / 2GB） | ~$9 |
+| EBS 20GB (gp3) | EC2 ルートボリューム | ~$2 |
 | CloudFront | HTTPS終端 + CDN | ~$0（無料枠内） |
-| ECS Fargate | コンテナ実行（2サービス、各0.25vCPU/512MB） | ~$15 |
 | ECR | Docker イメージ保存（2リポジトリ） | ~$1 |
-| CloudWatch Logs | ログ収集 | ~$1 |
 | S3 + DynamoDB | Terraform ステート管理 | < $1 |
-| **合計** | | **~$68/月** |
+| **合計** | | **~$13/月** |
 
 ---
 
@@ -275,7 +274,7 @@ AWS ECS Fargate 上で本番稼働中。
 ### Phase 4: インフラ・デプロイ
 - [x] Terraform でAWSインフラ構築（35リソース）
 - [x] Docker 化（マルチステージビルド）
-- [x] ECR push + ECS Fargate デプロイ
+- [x] ECR push + k3s (EC2) デプロイ
 - [x] CloudFront 追加（HTTPS + CDN）
 - [x] GitHub Actions CI/CD パイプライン
 
@@ -317,9 +316,9 @@ AWS ECS Fargate 上で本番稼働中。
 | 学習目的 | 対応する実装 |
 |---------|-------------|
 | Dockerコンテナの基礎 | Dockerfile作成、マルチステージビルド、フロントエンド/バックエンドの2コンテナ構成 |
-| ECS/Fargateでのコンテナデプロイ | Terraformによるクラスタ・タスク定義・サービス作成、ALB連携 |
+| k3s (Kubernetes) でのコンテナデプロイ | Terraform で EC2 作成、k3s + Traefik Ingress でパスベースルーティング |
 | IaC (Terraform) | HCLでのインフラ定義（35リソース）、ステート管理（S3 + DynamoDB） |
-| CI/CD | GitHub ActionsでのDockerビルド → ECRプッシュ → ECSデプロイ（OIDC認証） |
+| CI/CD | GitHub ActionsでのDockerビルド → ECRプッシュ → SSH + kubectl デプロイ（OIDC認証） |
 | AI連携 | Claude Vision APIの活用（手相画像解析） |
 | フロントエンド | Next.js App Router、Tailwind CSS v4、Framer Motion、PWA、i18n |
 | テスト | Jest + Supertest（Backend）、React Testing Library（Frontend）、Playwright（E2E） |

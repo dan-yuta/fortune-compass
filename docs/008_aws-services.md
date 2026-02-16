@@ -10,18 +10,17 @@
 |---|-----------|---------|---------------------|---------|
 | 1 | Amazon VPC | ネットワーク | 仮想ネットワーク（サブネット・ルーティング） | $0 |
 | 2 | Internet Gateway | ネットワーク | VPC とインターネット間の通信 | $0 |
-| 3 | NAT Gateway | ネットワーク | Private Subnet からの外向き通信 | ~$32 |
-| 4 | Elastic IP | ネットワーク | NAT Gateway 用の固定 IP | $0（NAT GW利用時） |
-| 5 | Application Load Balancer (ALB) | ネットワーク | パスベースルーティング（/api/* → Backend, /* → Frontend） | ~$18 |
+| 3 | Amazon EC2 | コンピュート | k3s (lightweight Kubernetes) 実行環境（t3.small） | ~$9 |
+| 4 | Amazon EBS | ストレージ | EC2 インスタンスのブロックストレージ（gp3 20GB） | ~$2 |
+| 5 | Traefik Ingress (k3s built-in) | ネットワーク | パスベースルーティング（/api/* → Backend, /* → Frontend） | $0（k3s 組み込み） |
 | 6 | Amazon CloudFront | CDN | HTTPS 終端 + 静的アセットキャッシュ | ~$0（無料枠内） |
-| 7 | Amazon ECS (Fargate) | コンピュート | コンテナ実行環境（Frontend + Backend の2サービス） | ~$15 |
-| 8 | Amazon ECR | コンテナレジストリ | Docker イメージの保存・管理 | ~$1 |
-| 9 | Amazon CloudWatch Logs | モニタリング | コンテナのログ収集・閲覧 | ~$1 |
-| 10 | Amazon S3 | ストレージ | Terraform ステートファイルの保存 | < $1 |
-| 11 | Amazon DynamoDB | データベース | Terraform ステートのロック管理 | < $1 |
-| 12 | AWS IAM | セキュリティ | ロール・ポリシー管理（ECS タスク実行、CI/CD） | $0 |
+| 7 | Amazon ECR | コンテナレジストリ | Docker イメージの保存・管理 | ~$1 |
+| 8 | Amazon CloudWatch Logs | モニタリング | コンテナのログ収集・閲覧 | ~$1 |
+| 9 | Amazon S3 | ストレージ | Terraform ステートファイルの保存 | < $1 |
+| 10 | Amazon DynamoDB | データベース | Terraform ステートのロック管理 | < $1 |
+| 11 | AWS IAM | セキュリティ | ロール・ポリシー管理（EC2、CI/CD） | $0 |
 
-**合計: 約 $68/月**
+**合計: 約 $14/月**
 
 ---
 
@@ -33,10 +32,9 @@
 
 **本プロジェクトでの構成**:
 - CIDR: `10.0.0.0/16`（65,536 IP アドレス）
-- Public Subnet x2: ALB と NAT Gateway を配置（2つの AZ に分散）
-- Private Subnet x2: ECS タスクを配置（外部から直接アクセス不可）
+- Public Subnet x2: EC2 (k3s) を配置
 
-**なぜ使うか**: コンテナを直接インターネットに露出させず、ALB 経由でのみアクセスを許可するため。
+**なぜ使うか**: EC2 インスタンスをセキュリティグループで保護しつつ、CloudFront 経由でアクセスを制御するため。
 
 ---
 
@@ -44,36 +42,29 @@
 
 **概要**: VPC とインターネット間の通信を可能にするゲートウェイ。Public Subnet 内のリソースがインターネットと通信するために必要。
 
-**本プロジェクトでの役割**: ALB がインターネットからのリクエストを受け取れるようにする。
+**本プロジェクトでの役割**: EC2 (k3s) がインターネットからのリクエストを受け取り、ECR からイメージを pull できるようにする。
 
 ---
 
-### 2.3 NAT Gateway
+### 2.3 NAT Gateway（廃止済み）
 
-**概要**: Private Subnet 内のリソースがインターネットにアクセスするためのゲートウェイ。外部からの通信は受け付けないが、内部から外部への通信は許可する。
-
-**本プロジェクトでの役割**:
-- ECS タスクが ECR から Docker イメージを pull する
-- ECS タスクが CloudWatch Logs にログを送信する
-
-**コスト**: ~$32/月（最もコストが高いリソース）。コスト削減のため Public Subnet + Public IP で代替可能だが、セキュリティが低下する。
+> **Note**: EC2 を Public Subnet に配置する構成に移行したため、NAT Gateway は不要となり廃止した。これにより ~$32/月のコスト削減を実現。EC2 は Public IP を持ち、ECR からのイメージ pull や CloudWatch Logs への送信は直接インターネット経由で行う。
 
 ---
 
-### 2.4 Application Load Balancer (ALB)
+### 2.4 Traefik Ingress（k3s built-in）
 
-**概要**: HTTP/HTTPS レイヤー（L7）で動作するロードバランサー。URL パスやホスト名に基づいてトラフィックを振り分けられる。
+**概要**: k3s に組み込みの Ingress Controller。Kubernetes Ingress リソースに基づいて HTTP/HTTPS レイヤー（L7）でトラフィックをルーティングする。ALB の代替として機能し、追加コスト不要。
 
 **本プロジェクトでの役割**:
 - **パスベースルーティング**: `/api/*` → Backend (Express :8080), `/*` → Frontend (Next.js :3000)
-- **ヘルスチェック**: 各ターゲットの `/health` と `/api/health` を定期的に確認
-- **2 AZ に配置**: 高可用性を確保
+- **ヘルスチェック**: Kubernetes の livenessProbe / readinessProbe で各 Pod の `/health` と `/api/health` を監視
 
-**リスナールール**:
-| 優先度 | パスパターン | 転送先 |
-|-------|-----------|--------|
-| 100 | `/api/*` | Backend Target Group |
-| default | `/*` | Frontend Target Group |
+**Ingress ルール**:
+| パスパターン | 転送先 Service | ポート |
+|------------|---------------|-------|
+| `/api/*` | backend-svc | 8080 |
+| `/*` | frontend-svc | 3000 |
 
 ---
 
@@ -85,7 +76,7 @@
 - **HTTPS 提供**: CloudFront デフォルト証明書による自動 HTTPS
 - **短縮 URL**: `https://d71oywvumn06c.cloudfront.net` という CloudFront ドメインで提供
 - **静的アセットキャッシュ**: `/_next/static/*` を積極的にキャッシュ（デフォルト TTL: 7日）
-- **API リクエスト転送**: `/api/*` はキャッシュ無効で ALB に直接転送
+- **API リクエスト転送**: `/api/*` はキャッシュ無効で EC2 (k3s) に直接転送
 
 **キャッシュ戦略**:
 | パスパターン | キャッシュ TTL | 説明 |
@@ -98,27 +89,34 @@
 
 ---
 
-### 2.6 Amazon ECS（Elastic Container Service）+ Fargate
+### 2.6 Amazon EC2 + k3s
 
-**概要**: コンテナオーケストレーションサービス。Fargate は ECS のサーバーレス起動タイプで、EC2 インスタンスの管理が不要。
+**概要**: EC2 インスタンス上に k3s（軽量 Kubernetes）をインストールし、コンテナオーケストレーションを行う。ECS Fargate と比較して大幅にコストを削減できる。
 
 **本プロジェクトでの構成**:
 
-| サービス | コンテナ | CPU | メモリ | ポート |
-|---------|---------|-----|-------|--------|
-| Frontend | Next.js (standalone) | 256 (0.25 vCPU) | 512 MB | 3000 |
-| Backend | Express | 256 (0.25 vCPU) | 512 MB | 8080 |
+| 項目 | 値 |
+|------|-----|
+| インスタンスタイプ | t3.small (2 vCPU, 2 GB RAM) |
+| OS | Amazon Linux 2023 |
+| k3s バージョン | 最新安定版 |
+| EBS | gp3 20GB |
 
-**主要コンポーネント**:
-- **Cluster**: `fortune-compass-dev` — サービスをグループ化する論理単位
-- **Task Definition**: コンテナの設定（イメージ、CPU、メモリ、環境変数、ログ設定）を定義
-- **Service**: Task Definition に基づいてタスクを起動・維持（希望タスク数: 各1）
-- **IAM Role**: タスク実行ロール（ECR pull + CloudWatch Logs 書き込み権限）
+**k8s リソース**:
 
-**なぜ Fargate か**:
-- EC2 インスタンスの管理不要（パッチ適用、スケーリング等）
-- 使用分だけの課金（小規模アプリに最適）
-- デプロイが単純（イメージ更新 → サービス更新 → ローリングデプロイ）
+| リソース | 名前 | 説明 |
+|---------|------|------|
+| Deployment | frontend | Next.js (standalone) Pod x1 (:3000) |
+| Deployment | backend | Express Pod x1 (:8080) |
+| Service | frontend-svc | ClusterIP → frontend Pod |
+| Service | backend-svc | ClusterIP → backend Pod |
+| Ingress | app-ingress | Traefik によるパスベースルーティング |
+
+**なぜ EC2 + k3s か**:
+- ECS Fargate + ALB + NAT Gateway（~$68/月）から EC2 + k3s（~$14/月）に移行し、約80%のコスト削減
+- k3s は単一バイナリで軽量、t3.small でも十分に動作
+- Kubernetes の標準的な Deployment / Service / Ingress で管理でき、学習コストが汎用的
+- デプロイが単純（kubectl set image でローリングアップデート）
 
 ---
 
@@ -182,8 +180,8 @@
 
 | ロール名 | 用途 | 権限 |
 |---------|------|------|
-| `fortune-compass-dev-ecs-execution` | ECS タスク実行 | ECR pull, CloudWatch Logs 書き込み |
-| `fortune-compass-github-actions`* | CI/CD | ECR push, ECS update, S3/DynamoDB |
+| `fortune-compass-dev-ec2-role` | EC2 インスタンスプロファイル | ECR pull, CloudWatch Logs 書き込み |
+| `fortune-compass-github-actions`* | CI/CD | ECR push, S3/DynamoDB |
 
 *GitHub Actions 用ロールは OIDC 連携（長寿命アクセスキー不使用）。
 
@@ -195,27 +193,25 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │  VPC: 10.0.0.0/16                                               │
 │                                                                 │
-│  ┌──────────────────────────┐  ┌──────────────────────────┐    │
-│  │  Public Subnet           │  │  Public Subnet           │    │
-│  │  10.0.0.0/24             │  │  10.0.1.0/24             │    │
-│  │  ap-northeast-1a         │  │  ap-northeast-1c         │    │
-│  │                          │  │                          │    │
-│  │  ┌─────────┐  ┌──────┐  │  │  ┌─────────┐            │    │
-│  │  │   ALB   │  │ NAT  │  │  │  │   ALB   │            │    │
-│  │  │ (node)  │  │  GW  │  │  │  │ (node)  │            │    │
-│  │  └─────────┘  └──────┘  │  │  └─────────┘            │    │
-│  └──────────────────────────┘  └──────────────────────────┘    │
-│                                                                 │
-│  ┌──────────────────────────┐  ┌──────────────────────────┐    │
-│  │  Private Subnet          │  │  Private Subnet          │    │
-│  │  10.0.10.0/24            │  │  10.0.11.0/24            │    │
-│  │  ap-northeast-1a         │  │  ap-northeast-1c         │    │
-│  │                          │  │                          │    │
-│  │  ┌─────────┐┌─────────┐ │  │  (ECS タスクが配置      │    │
-│  │  │Frontend ││Backend  │ │  │   される可能性あり)      │    │
-│  │  │ :3000   ││ :8080   │ │  │                          │    │
-│  │  └─────────┘└─────────┘ │  │                          │    │
-│  └──────────────────────────┘  └──────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Public Subnet                                            │   │
+│  │  10.0.0.0/24                                              │   │
+│  │  ap-northeast-1a                                          │   │
+│  │                                                           │   │
+│  │  ┌─────────────────────────────────────────────────────┐  │   │
+│  │  │  EC2 (t3.small) — k3s                               │  │   │
+│  │  │                                                     │  │   │
+│  │  │  ┌───────────┐                                      │  │   │
+│  │  │  │  Traefik  │  Ingress Controller                  │  │   │
+│  │  │  │  :80/:443 │  /api/* → backend, /* → frontend     │  │   │
+│  │  │  └─────┬─────┘                                      │  │   │
+│  │  │        │                                            │  │   │
+│  │  │  ┌─────▼─────┐  ┌───────────┐                      │  │   │
+│  │  │  │ Frontend  │  │ Backend   │                       │  │   │
+│  │  │  │ Pod :3000 │  │ Pod :8080 │                       │  │   │
+│  │  │  └───────────┘  └───────────┘                       │  │   │
+│  │  └─────────────────────────────────────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────┘   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
          │                              ▲
@@ -237,11 +233,11 @@
 
 2. CloudFront がリクエストを受信
    ├─ /_next/static/* → キャッシュから返却（キャッシュヒット時）
-   └─ その他 → ALB にフォワード
+   └─ その他 → EC2 (k3s) にフォワード
 
-3. ALB がパスで振り分け
-   ├─ /api/* → Backend Target Group → Express コンテナ
-   └─ /*     → Frontend Target Group → Next.js コンテナ
+3. Traefik Ingress がパスで振り分け
+   ├─ /api/* → backend-svc → Express Pod
+   └─ /*     → frontend-svc → Next.js Pod
 
 4. レスポンスが CloudFront → ユーザーに返却
 ```
@@ -253,9 +249,9 @@
 | レイヤー | 対策 |
 |---------|------|
 | HTTPS | CloudFront がデフォルト証明書で SSL/TLS 終端 |
-| ネットワーク隔離 | ECS タスクは Private Subnet に配置（外部から直接アクセス不可） |
-| セキュリティグループ | ECS は ALB からのみ通信許可（ポート 3000/8080） |
-| IAM | 最小権限の原則。ECS タスクロールは ECR pull + Logs のみ |
+| ネットワーク制御 | EC2 はセキュリティグループで必要ポート（80, 443, 22, 6443）のみ許可 |
+| セキュリティグループ | k3s SG で HTTP/HTTPS のみ公開、SSH/K8s API は管理者 IP に限定 |
+| IAM | 最小権限の原則。EC2 ロールは ECR pull + Logs のみ |
 | CORS | バックエンドは CloudFront ドメインからのみリクエスト許可 |
 | CI/CD 認証 | GitHub Actions OIDC（長寿命アクセスキー不使用） |
 | コンテナ | 非 root ユーザーで実行（node / nextjs） |

@@ -1,3 +1,11 @@
+# --- Data ---
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  ecr_registry = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
+
 # --- Networking ---
 
 module "networking" {
@@ -16,33 +24,19 @@ module "ecr" {
   environment  = var.environment
 }
 
-# --- ALB ---
+# --- EC2 + k3s ---
 
-module "alb" {
-  source = "../../modules/alb"
+module "ec2_k3s" {
+  source = "../../modules/ec2-k3s"
 
-  project_name      = var.project_name
-  environment       = var.environment
-  vpc_id            = module.networking.vpc_id
-  public_subnet_ids = module.networking.public_subnet_ids
-}
-
-# --- ECS ---
-
-module "ecs" {
-  source = "../../modules/ecs"
-
-  project_name              = var.project_name
-  environment               = var.environment
-  aws_region                = var.aws_region
-  vpc_id                    = module.networking.vpc_id
-  private_subnet_ids        = module.networking.private_subnet_ids
-  alb_security_group_id     = module.alb.alb_security_group_id
-  frontend_target_group_arn = module.alb.frontend_target_group_arn
-  backend_target_group_arn  = module.alb.backend_target_group_arn
-  frontend_image            = var.frontend_image
-  backend_image             = var.backend_image
-  cors_origin               = "https://${module.cloudfront.distribution_domain_name}"
+  project_name     = var.project_name
+  environment      = var.environment
+  aws_region       = var.aws_region
+  vpc_id           = module.networking.vpc_id
+  public_subnet_id = module.networking.public_subnet_ids[0]
+  ecr_registry     = local.ecr_registry
+  backend_image    = "${module.ecr.repository_urls["backend"]}:latest"
+  frontend_image   = "${module.ecr.repository_urls["frontend"]}:latest"
 }
 
 # --- CloudFront ---
@@ -50,7 +44,7 @@ module "ecs" {
 module "cloudfront" {
   source = "../../modules/cloudfront"
 
-  project_name = var.project_name
-  environment  = var.environment
-  alb_dns_name = module.alb.alb_dns_name
+  project_name  = var.project_name
+  environment   = var.environment
+  origin_domain = module.ec2_k3s.public_dns
 }

@@ -1,6 +1,6 @@
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
-  origin_id   = "${local.name_prefix}-alb"
+  origin_id   = "${local.name_prefix}-origin"
 }
 
 resource "aws_cloudfront_distribution" "main" {
@@ -9,7 +9,7 @@ resource "aws_cloudfront_distribution" "main" {
   is_ipv6_enabled = true
 
   origin {
-    domain_name = var.alb_dns_name
+    domain_name = var.origin_domain
     origin_id   = local.origin_id
 
     custom_origin_config {

@@ -13,9 +13,9 @@
 | バージョン | v2.0（Phase 9 完了） |
 | 目的 | 16占術（4カテゴリ: 定番・誕生日・伝統・特殊）+ 総合ダッシュボードを提供する総合占いWebアプリ |
 | 想定作業時間 | 2〜3時間 |
-| 実行環境 | AWS ECS Fargate（CloudFront + ALB 経由） |
+| 実行環境 | AWS EC2 + k3s（CloudFront 経由） |
 | 技術スタック | Next.js 16.x + Express 5.x + TypeScript + Tailwind CSS v4 |
-| インフラ | AWS (CloudFront / ALB / ECS Fargate / ECR / VPC) |
+| インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC) |
 | IaC | Terraform |
 | CI/CD | GitHub Actions |
 
@@ -100,9 +100,9 @@
 |--------|------|------|
 | Dockerfile 作成（frontend / backend） | ✅ 完了 | Multi-stage build |
 | ヘルスチェックエンドポイント追加 | ✅ 完了 | /health, /api/health |
-| Terraform モジュール作成（5モジュール） | ✅ 完了 | networking, ecr, alb, ecs, cloudfront |
+| Terraform モジュール作成（4モジュール） | ✅ 完了 | networking, ecr, ec2-k3s, cloudfront |
 | ECR リポジトリ作成 + イメージ push | ✅ 完了 | frontend / backend |
-| ECS Fargate デプロイ | ✅ 完了 | 2サービス稼働中 |
+| k3s (EC2) デプロイ | ✅ 完了 | 2サービス稼働中 |
 | CloudFront 配置 (HTTPS) | ✅ 完了 | d71oywvumn06c.cloudfront.net |
 | GitHub Actions CI/CD 設定 | ✅ 完了 | deploy.yml |
 
@@ -215,7 +215,7 @@ M5 結合 + 動作確認（20分）
 |------|---------|
 | 2026-02-16 | 初版作成。MVP全タスク定義 |
 | 2026-02-16 | M1〜M5 全タスク完了。テスト75件パス、ESLint クリーン |
-| 2026-02-16 | M6 追加。AWS デプロイ完了（ECS Fargate + CloudFront） |
+| 2026-02-16 | M6 追加。AWS デプロイ完了（EC2 + k3s + CloudFront） |
 | 2026-02-16 | 技術スタック・関連ドキュメント・スコープ外を最新化 |
 | 2026-02-17 | M7 追加。Phase 7 機能拡充（8機能）全タスク完了、デプロイ成功 |
 | 2026-02-17 | M8 追加。Phase 8 総合運勢ダッシュボード全タスク完了、デプロイ成功 |

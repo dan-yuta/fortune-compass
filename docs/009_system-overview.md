@@ -38,7 +38,7 @@
 | GitHub | https://github.com/dan-yuta/fortune-compass (private) |
 | フロントエンド | Next.js 16.1.6 (App Router) + Tailwind CSS v4 |
 | バックエンド | Express 5.x + TypeScript |
-| インフラ | AWS (CloudFront / ALB / ECS Fargate / ECR / VPC) |
+| インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC) |
 | IaC | Terraform（35 リソース） |
 | CI/CD | GitHub Actions（OIDC 認証） |
 | テスト (Backend) | Jest + Supertest（75 テストケース / カバレッジ 90.17%） |
@@ -84,36 +84,22 @@
                     │   (CDN)         │
                     │                 │
                     │ /_next/static/* │→ キャッシュから返却（7日）
-                    │ /api/*         │→ ALB に転送（キャッシュ無効）
-                    │ /*             │→ ALB に転送（キャッシュ無効）
+                    │ /api/*         │→ EC2 に転送（キャッシュ無効）
+                    │ /*             │→ EC2 に転送（キャッシュ無効）
                     └────────┬────────┘
                              │ HTTP
-                    ┌────────▼────────┐
-                    │      ALB        │   Public Subnets (2 AZ)
-                    │  (port 80)      │
-                    │                 │
-                    │ ┌─────────────┐ │
-                    │ │ Listener    │ │
-                    │ │ Rules       │ │
-                    │ └──┬──────┬──┘ │
-                    └────┼──────┼────┘
-               /api/*    │      │       /* (default)
-              ┌──────────┘      └──────────┐
-              ▼                            ▼
-    ┌──────────────────┐       ┌──────────────────┐
-    │  ECS Service     │       │  ECS Service     │
-    │  Backend         │       │  Frontend        │
-    │                  │       │                  │
-    │  Express :8080   │       │  Next.js :3000   │
-    │  0.25 vCPU       │       │  0.25 vCPU       │
-    │  512 MB          │       │  512 MB          │
-    └────────┬─────────┘       └────────┬─────────┘
-             │    Private Subnets (2 AZ)    │
-             └──────────┬───────────────────┘
-                        │
-                 ┌──────▼──────┐
-                 │ NAT Gateway │ → Internet（ECR pull, ログ送信）
-                 └─────────────┘
+                    ┌────────▼─────────────────────┐
+                    │  EC2 (t3.small)               │  Public Subnet
+                    │  ┌─────────────────────────┐  │
+                    │  │  k3s + Traefik Ingress  │  │
+                    │  │  /api/* → backend:8080  │  │
+                    │  │  /*     → frontend:3000 │  │
+                    │  ├─────────────┬───────────┤  │
+                    │  │ Pod:Backend │Pod:Frontend│  │
+                    │  │ Express     │ Next.js    │  │
+                    │  │ :8080       │ :3000      │  │
+                    │  └─────────────┴───────────┘  │
+                    └───────────────────────────────┘
 ```
 
 ### ローカル開発環境
@@ -1024,19 +1010,17 @@ CloudFront → ブラウザ
 
 | # | サービス | 役割 | 月額概算 |
 |---|---------|------|---------|
-| 1 | VPC | 仮想ネットワーク（4 サブネット + ルーティング） | $0 |
+| 1 | VPC | 仮想ネットワーク（サブネット + ルーティング） | $0 |
 | 2 | Internet Gateway | VPC ↔ インターネット通信 | $0 |
-| 3 | NAT Gateway | Private Subnet → インターネット（ECR pull 等） | ~$32 |
-| 4 | Elastic IP | NAT Gateway 用固定 IP | $0 |
-| 5 | ALB | パスベースルーティング（/api/* → Backend, /* → Frontend） | ~$18 |
-| 6 | CloudFront | HTTPS 終端 + 静的アセットキャッシュ | ~$0 |
-| 7 | ECS Fargate | コンテナ実行（Frontend + Backend の 2 サービス） | ~$15 |
-| 8 | ECR | Docker イメージ保管（2 リポジトリ） | ~$1 |
-| 9 | CloudWatch Logs | コンテナログ収集（14 日保持） | ~$1 |
-| 10 | S3 | Terraform ステートファイル保存 | < $1 |
-| 11 | DynamoDB | Terraform ステートロック | < $1 |
-| 12 | IAM | ロール・ポリシー管理 | $0 |
-| | **合計** | | **~$68/月** |
+| 3 | EC2 (t3.small) | k3s クラスタ実行（2vCPU / 2GB） | ~$9 |
+| 4 | Elastic IP | EC2 用固定 IP | $0 |
+| 5 | CloudFront | HTTPS 終端 + 静的アセットキャッシュ | ~$0 |
+| 6 | ECR | Docker イメージ保管（2 リポジトリ） | ~$1 |
+| 7 | EBS (gp3) | EC2 ルートボリューム（20GB） | ~$2 |
+| 8 | S3 | Terraform ステートファイル保存 | < $1 |
+| 9 | DynamoDB | Terraform ステートロック | < $1 |
+| 10 | IAM | ロール・ポリシー管理 | $0 |
+| | **合計** | | **~$13/月** |
 
 ### ネットワーク構成
 
@@ -1049,24 +1033,16 @@ CloudFront → ブラウザ
 │  │ 10.0.0.0/24              │  │ 10.0.1.0/24              │  │
 │  │ ap-northeast-1a          │  │ ap-northeast-1c          │  │
 │  │                          │  │                          │  │
-│  │ [ALB] [NAT GW] [EIP]    │  │ [ALB]                    │  │
-│  └─────────────────────────┘  └─────────────────────────┘  │
-│                                                             │
-│  ┌─────────────────────────┐  ┌─────────────────────────┐  │
-│  │ Private Subnet           │  │ Private Subnet           │  │
-│  │ 10.0.10.0/24             │  │ 10.0.11.0/24             │  │
-│  │ ap-northeast-1a          │  │ ap-northeast-1c          │  │
-│  │                          │  │                          │  │
-│  │ [Frontend] [Backend]     │  │ (ECS タスク配置可能)      │  │
+│  │ [EC2 k3s] [EIP]         │  │                          │  │
 │  └─────────────────────────┘  └─────────────────────────┘  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**なぜ Private Subnet？**
-- ECS コンテナが直接インターネットに公開されない（セキュリティ向上）
-- ALB 経由でのみアクセス可能
-- NAT Gateway 経由で ECR pull やログ送信は可能
+**なぜ Public Subnet + EC2？**
+- k3s（軽量 Kubernetes）を EC2 1台で実行し、コスト削減（NAT Gateway / ALB 不要）
+- Traefik Ingress（k3s 内蔵）がパスベースルーティングを担当
+- CloudFront 経由でのみ HTTPS アクセス
 
 ### セキュリティグループ
 
@@ -1206,9 +1182,9 @@ GitHub Actions                        AWS
 | レイヤー | 対策 | 詳細 |
 |---------|------|------|
 | 通信暗号化 | CloudFront HTTPS | デフォルト証明書で SSL/TLS 終端 |
-| ネットワーク隔離 | Private Subnet | ECS コンテナは外部から直接アクセス不可 |
-| ファイアウォール | Security Group | ECS は ALB からのみ通信許可（3000/8080） |
-| 最小権限 | IAM | ECS タスクロールは ECR pull + Logs 書き込みのみ |
+| ネットワーク隔離 | Security Group | EC2 はポート 80/443/22/6443 のみ開放 |
+| Ingress 制御 | Traefik | k3s 内蔵 Traefik がパスベースルーティング |
+| 最小権限 | IAM | EC2 インスタンスロールは ECR pull のみ |
 | CORS | Express ミドルウェア | CloudFront ドメインからのみ API リクエスト許可 |
 | CI/CD 認証 | GitHub OIDC | 長寿命アクセスキー不使用、一時認証のみ |
 | コンテナ実行 | 非 root ユーザー | Backend: `node` ユーザー / Frontend: `nextjs` ユーザー |

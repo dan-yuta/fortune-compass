@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-Fortune Compass を AWS ECS Fargate にデプロイするためのインフラ設計。
+Fortune Compass を AWS EC2 + k3s (lightweight Kubernetes) にデプロイするためのインフラ設計。
 IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 対象環境
@@ -14,8 +14,8 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 | IaC | Terraform >= 1.5 |
 | CI/CD | GitHub Actions |
 | コンテナレジストリ | Amazon ECR |
-| コンピュート | ECS Fargate |
-| ロードバランサー | ALB (Application Load Balancer) |
+| コンピュート | EC2 (k3s) |
+| ロードバランサー | Traefik Ingress (k3s built-in) |
 | CDN / HTTPS | Amazon CloudFront |
 
 ---
@@ -35,61 +35,47 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
                     │  /*       →  │  キャッシュ無効
                     └───────┬──────┘
                             │  HTTP (origin)
-                    ┌───────▼───────┐
-                    │   ALB (:80)   │   ← Public Subnets (2 AZs)
-                    │               │
-                    │  ┌──────────┐ │
-                    │  │ Listener │ │
-                    │  │ Rules    │ │
-                    │  └──┬───┬──┘ │
-                    └─────┼───┼────┘
-                /api/*    │   │       /* (default)
-                ┌─────────┘   └─────────┐
-                ▼                       ▼
-    ┌───────────────────┐   ┌───────────────────┐
-    │  Target Group     │   │  Target Group     │
-    │  Backend (:8080)  │   │  Frontend (:3000) │
-    └────────┬──────────┘   └────────┬──────────┘
-             │                       │
-    ┌────────▼──────────┐   ┌────────▼──────────┐
-    │  ECS Service      │   │  ECS Service      │
-    │  Backend          │   │  Frontend         │
-    │  ┌──────────────┐ │   │  ┌──────────────┐ │
-    │  │  Fargate     │ │   │  │  Fargate     │ │
-    │  │  Express     │ │   │  │  Next.js     │ │
-    │  │  :8080       │ │   │  │  :3000       │ │
-    │  │  256 CPU     │ │   │  │  256 CPU     │ │
-    │  │  512 MB      │ │   │  │  512 MB      │ │
-    │  └──────────────┘ │   │  └──────────────┘ │
-    └───────────────────┘   └───────────────────┘
-             │    Private Subnets (2 AZs)   │
-             └──────────┬───────────────────┘
-                        │
-                 ┌──────▼──────┐
-                 │ NAT Gateway │  → Internet (ECR pull 等)
-                 └──────┬──────┘
-                        │
-                 ┌──────▼──────┐
-                 │   Internet  │
-                 │   Gateway   │
-                 └─────────────┘
+                    ┌───────▼───────────────────┐
+                    │  EC2 (t3.small)            │  ← Public Subnet
+                    │  k3s (lightweight K8s)     │
+                    │                            │
+                    │  ┌──────────────────────┐  │
+                    │  │  Traefik Ingress     │  │  ← k3s built-in
+                    │  │  :80 / :443          │  │
+                    │  │                      │  │
+                    │  │  /api/* → backend    │  │
+                    │  │  /*     → frontend   │  │
+                    │  └──┬───────────┬───────┘  │
+                    │     │           │           │
+                    │  ┌──▼─────┐  ┌─▼────────┐  │
+                    │  │  Pod   │  │  Pod      │  │
+                    │  │Backend │  │ Frontend  │  │
+                    │  │Express │  │ Next.js   │  │
+                    │  │ :8080  │  │  :3000    │  │
+                    │  └────────┘  └───────────┘  │
+                    └───────────┬──────────────────┘
+                                │
+                    ┌───────────▼──────────┐
+                    │   Internet Gateway   │
+                    └──────────────────────┘
 ```
 
 ---
 
 ## 3. 設計判断
 
-### 3.1 ALB パスベースルーティング
+### 3.1 Traefik Ingress パスベースルーティング
 
-**決定**: ALB が `/api/*` をバックエンドに、`/*` をフロントエンドに直接ルーティングする。
+**決定**: k3s に組み込みの Traefik Ingress が `/api/*` をバックエンドに、`/*` をフロントエンドにルーティングする。
 
 **理由**:
-- 開発環境では Next.js の rewrites でフロントエンド → バックエンドにプロキシしているが、本番では ALB が直接振り分ける方が効率的
-- フロントエンドの API クライアント（`lib/api-client.ts`）は相対パス `/api/fortune/*` を使用しており、ブラウザからのリクエストは ALB のドメインに対して行われるため、コード変更不要
+- k3s にはデフォルトで Traefik Ingress Controller が含まれており、追加のロードバランサー（ALB 等）が不要
+- Kubernetes の Ingress リソースでパスベースルーティングを宣言的に管理できる
+- フロントエンドの API クライアント（`lib/api-client.ts`）は相対パス `/api/fortune/*` を使用しており、コード変更不要
 - 余分なネットワークホップ（ブラウザ → Frontend → Backend）を排除し、レイテンシを削減
 
 **代替案（不採用）**:
-- Cloud Map（サービスディスカバリ）: SSR でサーバーサイドから API を呼ぶ場合に必要だが、現在は全 API 呼び出しがクライアントサイドなので不要
+- ALB: パスベースルーティングは可能だが、月額 ~$18 のコストが発生。k3s の Traefik で同等の機能を無料で実現
 - フロントエンド経由プロキシ: 開発環境と同じ構成だが、本番では無駄なオーバーヘッド
 
 ### 3.2 Next.js standalone 出力
@@ -100,19 +86,20 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 - 通常の Next.js ビルドでは `node_modules` 全体（数百MB）が必要だが、standalone モードでは必要なファイルのみをコピーし、Docker イメージが約 120-150MB に削減される
 - standalone は `server.js` 単体で起動可能で、Dockerfile がシンプルになる
 
-### 3.3 Private Subnet + NAT Gateway
+### 3.3 Public Subnet + EC2
 
-**決定**: ECS タスクを Private Subnet に配置し、NAT Gateway 経由でインターネットアクセスする。
+**決定**: EC2 インスタンス（k3s）を Public Subnet に配置する。NAT Gateway は使用しない。
 
 **理由**:
-- コンテナが直接インターネットに公開されないため、セキュリティが向上
-- ECR からのイメージ pull や CloudWatch Logs への送信には外向きインターネットアクセスが必要
+- EC2 が直接インターネットアクセスを持つため、NAT Gateway（~$32/月）が不要
+- セキュリティグループで必要なポート（80, 443, 22, 6443）のみ許可し、セキュリティを確保
+- ECR からのイメージ pull や CloudWatch Logs への送信は EC2 の Public IP 経由で行う
 
-**コスト影響**: NAT Gateway は ~$32/月。コスト削減が必要な場合は Public Subnet + `assignPublicIp = true` で代替可能だが、ネットワーク隔離が失われる。
+**コスト影響**: NAT Gateway を廃止することで ~$32/月のコスト削減を実現。
 
 ### 3.4 シード付き乱数の日替わり整合性
 
-**決定**: ECS の複数タスク間でも同一日に同一結果を返す。
+**決定**: k3s の複数 Pod 間でも同一日に同一結果を返す。
 
 **理由**:
 - バックエンドの占いロジック（星座・数秘術・血液型）は djb2 ハッシュベースのシード付き乱数を使用しており、入力（誕生日 + 日付）が同じなら常に同じ結果を返す
@@ -122,7 +109,7 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 3.5 CloudFront による HTTPS 対応
 
-**決定**: CloudFront を ALB の前段に配置し、HTTPS 終端 + 静的アセットキャッシュを提供する。
+**決定**: CloudFront を EC2 (k3s) の前段に配置し、HTTPS 終端 + 静的アセットキャッシュを提供する。
 
 **理由**:
 - 無料でHTTPS対応が可能（CloudFront デフォルト証明書）
@@ -139,12 +126,12 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 3.6 Terraform モジュール分割
 
-**決定**: 5モジュール構成（networking / ecr / alb / ecs / cloudfront）。
+**決定**: 4モジュール構成（networking / ecr / ec2-k3s / cloudfront）+ k8s マニフェスト。
 
 **理由**:
-- MVP として十分な粒度で、過度な分割を避ける
+- ALB / ECS を廃止し、EC2 + k3s に統合したためモジュール数が削減
+- k8s マニフェスト（Deployment, Service, Ingress）は Terraform 外で管理
 - 環境追加（staging / production）時にモジュールを再利用可能
-- 各モジュールの責務が明確
 
 ---
 
@@ -162,25 +149,23 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 | 種別 | AZ | CIDR | 用途 |
 |------|-----|------|------|
-| Public | ap-northeast-1a | 10.0.0.0/24 | ALB, NAT Gateway |
-| Public | ap-northeast-1c | 10.0.1.0/24 | ALB |
-| Private | ap-northeast-1a | 10.0.10.0/24 | ECS タスク |
-| Private | ap-northeast-1c | 10.0.11.0/24 | ECS タスク |
+| Public | ap-northeast-1a | 10.0.0.0/24 | EC2 (k3s) |
+| Public | ap-northeast-1c | 10.0.1.0/24 | （予備） |
 
 ### 4.3 ルーティング
 
 | ルートテーブル | 宛先 | ターゲット |
 |-------------|------|----------|
 | Public | 0.0.0.0/0 | Internet Gateway |
-| Private | 0.0.0.0/0 | NAT Gateway |
 
 ### 4.4 セキュリティグループ
 
 | SG | インバウンド | アウトバウンド |
 |----|-----------|------------|
-| ALB SG | 80/tcp from 0.0.0.0/0 | All traffic |
-| ECS SG | 3000/tcp from ALB SG | All traffic |
-| ECS SG | 8080/tcp from ALB SG | All traffic |
+| k3s SG | 80/tcp from 0.0.0.0/0 | All traffic |
+| k3s SG | 443/tcp from 0.0.0.0/0 | All traffic |
+| k3s SG | 22/tcp from 管理者 IP | All traffic |
+| k3s SG | 6443/tcp from 管理者 IP | All traffic |
 
 ---
 
@@ -221,30 +206,32 @@ builder: next build → .next/standalone + .next/static
 runner:  standalone/ + public/ + static/ コピー → node server.js
 ```
 
-### 5.3 ECS タスク定義
+### 5.3 k3s Pod 構成
 
-| サービス | CPU | メモリ | 希望タスク数 |
-|---------|-----|-------|------------|
-| Frontend | 256 (0.25 vCPU) | 512 MB | 1 |
-| Backend | 256 (0.25 vCPU) | 512 MB | 1 |
+| サービス | Deployment replicas | 備考 |
+|---------|--------------------|----|
+| Frontend | 1 | k3s Pod として実行 |
+| Backend | 1 | k3s Pod として実行 |
 
 ---
 
-## 6. ALB 設計
+## 6. Traefik Ingress 設計
 
-### 6.1 リスナールール
+### 6.1 Ingress ルーティングルール
 
-| 優先度 | 条件 | 転送先 |
-|-------|------|-------|
-| 100 | path-pattern: `/api/*` | Backend Target Group |
-| default | (なし) | Frontend Target Group |
+| パスパターン | 転送先 Service | ポート |
+|------------|---------------|-------|
+| `/api/*` | backend-svc | 8080 |
+| `/*` (デフォルト) | frontend-svc | 3000 |
 
-### 6.2 ターゲットグループ
+Kubernetes Ingress リソースで宣言的に管理。k3s に組み込みの Traefik が自動的にルールを適用する。
 
-| TG | ポート | ヘルスチェックパス | 間隔 | 閾値 (healthy/unhealthy) |
-|----|-------|----------------|------|------------------------|
-| Frontend | 3000 | /health | 30s | 2 / 3 |
-| Backend | 8080 | /api/health | 30s | 2 / 3 |
+### 6.2 ヘルスチェック
+
+| Service | ヘルスチェックパス | 方式 |
+|---------|----------------|------|
+| Frontend | /health | k8s livenessProbe / readinessProbe |
+| Backend | /api/health | k8s livenessProbe / readinessProbe |
 
 ---
 
@@ -263,7 +250,7 @@ GitHub Actions OIDC を使用。長寿命のアクセスキーは使用しない
 |------|-----|
 | OIDC Provider | token.actions.githubusercontent.com |
 | IAM Role | fortune-compass-github-actions |
-| 必要な権限 | ECR push, ECS update, S3/DynamoDB (tfstate) |
+| 必要な権限 | ECR push, S3/DynamoDB (tfstate) |
 
 ### 7.3 パイプラインフロー
 
@@ -279,9 +266,9 @@ Push to master
           ├─ ECR ログイン
           ├─ Backend Docker build & push (tag: git SHA + latest)
           ├─ Frontend Docker build & push (tag: git SHA + latest)
-          ├─ terraform init
-          └─ terraform apply -auto-approve
-               └─ ECS タスク定義更新 → ローリングデプロイ
+          └─ SSH → EC2
+               └─ kubectl set image deployment/backend ...
+               └─ kubectl set image deployment/frontend ...
 ```
 
 ### 7.4 イメージタグ戦略
@@ -310,25 +297,29 @@ Push to master
 ```
 infra/terraform/
 ├── modules/
-│   ├── networking/     VPC, Subnets, IGW, NAT, Routes
+│   ├── networking/     VPC, Subnets, IGW, Routes
 │   ├── ecr/            ECR リポジトリ x2, ライフサイクルポリシー
-│   ├── alb/            ALB, SG, Target Groups, Listener Rules
-│   ├── ecs/            Cluster, Task Defs, Services, IAM, Logs, SG
+│   ├── ec2-k3s/        EC2, SG, Key Pair, User Data (k3s install)
 │   └── cloudfront/     CloudFront Distribution, Cache Behaviors
-└── environments/
-    └── dev/            モジュール結合 + 環境固有設定
+├── environments/
+│   └── dev/            モジュール結合 + 環境固有設定
+└── k8s/
+    ├── frontend-deployment.yaml
+    ├── backend-deployment.yaml
+    ├── frontend-service.yaml
+    ├── backend-service.yaml
+    └── ingress.yaml        Traefik Ingress ルール
 ```
 
 ### 8.3 リソース一覧
 
 | モジュール | リソース数 | 主なリソース |
 |-----------|----------|------------|
-| networking | 12 | VPC, Subnet x4, IGW, NAT GW, EIP, Route Table x2, Association x4 |
+| networking | 6 | VPC, Subnet x2, IGW, Route Table, Association x2 |
 | ecr | 4 | ECR Repository x2, Lifecycle Policy x2 |
-| alb | 7 | ALB, SG, Target Group x2, Listener, Listener Rule x2 |
-| ecs | 11 | Cluster, IAM Role x2, Log Group x2, SG, Task Def x2, Service x2 |
+| ec2-k3s | 4 | EC2 Instance, SG, Key Pair, EBS Volume |
 | cloudfront | 1 | CloudFront Distribution（3 Cache Behaviors 含む） |
-| **合計** | **35** | |
+| **合計** | **15** | |
 
 ### 8.4 主要変数
 
@@ -337,16 +328,16 @@ infra/terraform/
 | project_name | fortune-compass | リソース名のプレフィックス |
 | environment | dev | 環境名 |
 | aws_region | ap-northeast-1 | リージョン |
+| instance_type | t3.small | EC2 インスタンスタイプ |
+| key_pair_name | (必須) | SSH キーペア名 |
 | frontend_image | (必須) | フロントエンドの ECR イメージ URI |
 | backend_image | (必須) | バックエンドの ECR イメージ URI |
-| frontend_cpu / memory | 256 / 512 | フロントエンドのリソース割当 |
-| backend_cpu / memory | 256 / 512 | バックエンドのリソース割当 |
 
 ---
 
 ## 9. 環境変数
 
-### 9.1 Backend (ECS Task Definition)
+### 9.1 Backend (k8s Deployment)
 
 | 変数 | 値 | 説明 |
 |-----|-----|------|
@@ -355,7 +346,7 @@ infra/terraform/
 | CORS_ORIGIN | https://<CloudFront_Domain> | CORS 許可オリジン（Terraform が CloudFront ドメインから自動設定） |
 | ANTHROPIC_API_KEY | (Secrets Manager) | Claude Vision API キー（手相占い用） |
 
-### 9.2 Frontend (ECS Task Definition)
+### 9.2 Frontend (k8s Deployment)
 
 | 変数 | 値 | 説明 |
 |-----|-----|------|
@@ -365,13 +356,16 @@ infra/terraform/
 
 ### 9.3 シークレット管理
 
-現時点では機密情報（DB パスワード、API キー等）がないため、ECS Task Definition の `environment` ブロック（平文）で管理する。
+現時点では機密情報（DB パスワード、API キー等）がないため、k8s Deployment の `env` ブロック（平文）で管理する。
 
-将来的にシークレットが必要になった場合は AWS Secrets Manager + ECS の `secrets` ブロックに移行する：
-```json
-"secrets": [
-  { "name": "DB_PASSWORD", "valueFrom": "arn:aws:secretsmanager:..." }
-]
+将来的にシークレットが必要になった場合は Kubernetes Secret に移行する：
+```yaml
+env:
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: db-password
 ```
 
 ---
@@ -380,22 +374,20 @@ infra/terraform/
 
 | リソース | 概算 | 備考 |
 |---------|------|------|
-| Fargate | ~$15 | 2タスク x 0.25vCPU x 0.5GB |
-| ALB | ~$18 | 固定料金 + LCU |
-| NAT Gateway | ~$32 | 固定料金 + データ転送 |
+| EC2 (t3.small) | ~$9 | 1インスタンス（2 vCPU, 2 GB RAM）リザーブドでさらに削減可能 |
+| EBS | ~$2 | gp3 20GB |
 | CloudFront | ~$0 | 無料枠内（月間 1TB 転送 + 1,000万リクエスト） |
 | ECR | ~$1 | イメージストレージ（10世代保持） |
 | CloudWatch Logs | ~$1 | 14日保持 |
 | S3 + DynamoDB | < $1 | Terraform ステート |
-| **合計** | **~$68/月** | |
+| **合計** | **~$14/月** | |
 
 ### コスト削減オプション
 
 | 施策 | 削減額 | トレードオフ |
 |-----|-------|------------|
-| NAT Gateway 廃止 → Public Subnet + Public IP | -$32 | ネットワーク隔離が失われる |
-| Fargate Spot | ~-$10 | タスクが中断される可能性 |
-| 単一 AZ 構成 | ~-$5 | 可用性が低下 |
+| EC2 リザーブドインスタンス（1年） | ~-$3 | 前払いが必要 |
+| Spot インスタンス | ~-$6 | インスタンスが中断される可能性 |
 
 ---
 
@@ -428,7 +420,7 @@ infra/terraform/
 
 3. **GitHub Actions 用 IAM Role 作成**
    - 信頼ポリシー: GitHub OIDC Provider + リポジトリ条件
-   - 権限: ECR push, ECS update-service, S3/DynamoDB アクセス
+   - 権限: ECR push, S3/DynamoDB アクセス
 
 4. **GitHub Secret 設定**
    - `AWS_ACCOUNT_ID`: AWS アカウント ID
@@ -440,18 +432,17 @@ infra/terraform/
 ```
 git push origin master
   → test-backend (75 テスト)
-  → build-and-deploy (Docker build → ECR push → terraform apply)
-  → ECS ローリングデプロイ
+  → build-and-deploy (Docker build → ECR push → SSH + kubectl set image)
+  → k3s ローリングアップデート
 ```
 
 ### 11.3 ロールバック
 
 ```bash
-# 前のイメージタグ（git SHA）を指定して terraform apply
-cd infra/terraform/environments/dev
-terraform apply \
-  -var="frontend_image=<ECR_URI>:<previous_git_sha>" \
-  -var="backend_image=<ECR_URI>:<previous_git_sha>"
+# 前のイメージタグ（git SHA）を指定して kubectl set image
+ssh ec2-user@<EC2_IP>
+kubectl set image deployment/frontend frontend=<ECR_URI>:<previous_git_sha>
+kubectl set image deployment/backend backend=<ECR_URI>:<previous_git_sha>
 ```
 
 ---
@@ -462,9 +453,9 @@ terraform apply \
 |-----|-------|------|
 | カスタムドメイン | 高 | Route 53 + ACM 証明書 + CloudFront Alternate Domain |
 | staging 環境 | 中 | `environments/staging/` を追加し、同一モジュールを再利用 |
-| オートスケーリング | 中 | ECS Service Auto Scaling (CPU/メモリベース) |
-| Container Insights | 低 | ECS クラスターの詳細メトリクス |
+| オートスケーリング | 中 | Kubernetes HPA (Horizontal Pod Autoscaler) |
+| モニタリング | 低 | Prometheus + Grafana on k3s |
 | WAF | 低 | CloudFront 前段に AWS WAF を配置 |
-| Blue/Green デプロイ | 低 | CodeDeploy 連携で無停止デプロイ |
+| Blue/Green デプロイ | 低 | Kubernetes Deployment strategy で無停止デプロイ |
 
 > **Note**: HTTPS 対応は CloudFront により実現済み（デフォルト証明書）。
