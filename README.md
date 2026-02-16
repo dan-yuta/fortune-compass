@@ -116,7 +116,8 @@ fortune-compass/
 │   │   │   ├── zodiac.ts     #     星座占い
 │   │   │   ├── numerology.ts #     数秘術
 │   │   │   ├── blood-type.ts #     血液型占い
-│   │   │   └── tarot.ts      #     タロット占い
+│   │   │   ├── tarot.ts      #     タロット占い
+│   │   │   └── dashboard.ts  #     総合ダッシュボード
 │   │   ├── data/             #   マスターデータ
 │   │   │   ├── zodiac-data.ts
 │   │   │   ├── tarot-cards.ts
@@ -156,6 +157,7 @@ fortune-compass/
         │   │   └── page.tsx      # 占い履歴一覧
         │   └── fortune/
         │       ├── page.tsx      # 占術選択
+        │       ├── dashboard/    # 総合運勢ダッシュボード
         │       ├── zodiac/       # 星座占い結果
         │       ├── numerology/   # 数秘術結果
         │       ├── blood-type/   # 血液型占い結果
@@ -173,6 +175,7 @@ fortune-compass/
         │       ├── LoadingState.tsx
         │       ├── ErrorState.tsx
         │       ├── ResultCard.tsx
+        │       ├── RadarChart.tsx     # SVGレーダーチャート
         │       ├── OtherFortunes.tsx  # 他占術へのショートカット
         │       └── ShareButtons.tsx   # SNSシェアボタン
         └── lib/
@@ -236,6 +239,7 @@ cd backend && npm run build
 | 機能 | 説明 |
 |-----|------|
 | 4占術 | 星座占い・数秘術・血液型占い・タロット |
+| 総合運勢ダッシュボード | 4占術一括実行 + レーダーチャート (総合運/恋愛運/仕事運/金運) |
 | SNSシェア | 結果をX(Twitter)/LINE/Facebookでシェア + リンクコピー |
 | 占い履歴 | localStorage に過去の結果を保存・一覧表示 (最大50件) |
 | 結果→他占術遷移 | 結果画面下部に他3占術へのショートカット |
@@ -258,6 +262,7 @@ cd backend && npm run build
 | `/api/fortune/numerology` | `{ birthday: "YYYY-MM-DD", name: "ROMAJI" }` | 数秘術 |
 | `/api/fortune/blood-type` | `{ bloodType: "A" \| "B" \| "O" \| "AB" }` | 血液型占い |
 | `/api/fortune/tarot` | `{}` | タロット占い |
+| `/api/fortune/dashboard` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI", bloodType?: "A" }` | 総合ダッシュボード |
 
 ## 占いロジック
 

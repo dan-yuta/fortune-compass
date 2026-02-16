@@ -53,3 +53,20 @@ export interface TarotResult {
   cards: TarotCard[];
   overallMessage: string;
 }
+
+export interface RadarScores {
+  overall: number;
+  love: number;
+  work: number;
+  money: number;
+}
+
+export interface DashboardResult {
+  fortuneType: "dashboard";
+  radar: RadarScores;
+  zodiac: ZodiacResult;
+  numerology: NumerologyResult;
+  bloodType: BloodTypeResult | null;
+  tarot: TarotResult;
+  overallAdvice: string;
+}

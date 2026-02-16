@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Star, Hash, Droplet, Layers, Settings } from "lucide-react";
+import { Star, Hash, Droplet, Layers, Settings, LayoutDashboard } from "lucide-react";
 import { motion } from "framer-motion";
 import { getProfileSnapshot, subscribeStorage } from "@/lib/storage";
 import FortuneCard from "@/components/fortune/FortuneCard";
@@ -47,6 +47,33 @@ export default function FortuneSelectionPage() {
           今日の占いを選んでください
         </p>
       </div>
+
+      {/* Dashboard Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-6"
+      >
+        <Link
+          href="/fortune/dashboard"
+          className="block bg-gradient-to-r from-mystic-purple/20 to-purple-900/20 rounded-xl p-5 border border-mystic-purple/30 hover:border-mystic-purple/60 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-mystic-purple/60"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-mystic-purple/20 flex items-center justify-center">
+              <LayoutDashboard className="w-6 h-6 text-celestial-gold" aria-hidden="true" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-text-primary">
+                総合運勢ダッシュボード
+              </h3>
+              <p className="text-sm text-text-secondary">
+                4つの占術を一括実行してレーダーチャートで運勢を可視化
+              </p>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
 
       <motion.div
         className="grid grid-cols-1 sm:grid-cols-2 gap-4"

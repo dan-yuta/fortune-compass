@@ -4,6 +4,7 @@ import {
   NumerologyResult,
   BloodTypeResult,
   TarotResult,
+  DashboardResult,
 } from "./types";
 
 async function postFortune<T>(
@@ -57,4 +58,14 @@ export async function fetchTarotFortune(
   _profile: UserProfile
 ): Promise<TarotResult> {
   return postFortune<TarotResult>("tarot", {});
+}
+
+export async function fetchDashboardFortune(
+  profile: UserProfile
+): Promise<DashboardResult> {
+  return postFortune<DashboardResult>("dashboard", {
+    birthday: profile.birthday,
+    name: profile.nameRomaji,
+    bloodType: profile.bloodType,
+  });
 }
