@@ -3,33 +3,45 @@
 ## 1. テスト方針
 
 ### スコープ
-MVPでは**バックエンドの占いロジック**を重点的にテストする。
-フロントエンドはE2Eテストではなく**手動確認**で対応。
+バックエンド占いロジック（75テスト）+ フロントエンドコンポーネント（31テスト）+ E2E（25テスト）の3層テスト。
 
 ### テストツール
-| 種別 | ツール |
-|------|-------|
-| バックエンド単体テスト | Jest + ts-jest |
-| APIテスト | supertest |
-| フロントエンド | 手動確認（MVP） |
+| 種別 | ツール | テスト数 |
+|------|-------|---------|
+| バックエンド単体テスト | Jest + ts-jest | 75 |
+| バックエンドAPIテスト | supertest | (上記に含む) |
+| フロントエンド単体テスト | Jest + React Testing Library | 31 |
+| E2Eテスト | Playwright (Chromium) | 25 |
+| **合計** | | **131** |
 
 ### テストファイル配置
 ```
 backend/
-├── src/
-│   └── services/
-│       ├── zodiac.ts
-│       ├── numerology.ts
-│       ├── blood-type.ts
-│       └── tarot.ts
 └── __tests__/
     ├── services/
-    │   ├── zodiac.test.ts
-    │   ├── numerology.test.ts
-    │   ├── blood-type.test.ts
-    │   └── tarot.test.ts
+    │   ├── zodiac.test.ts        # 星座占いロジック
+    │   ├── numerology.test.ts    # 数秘術ロジック
+    │   ├── blood-type.test.ts    # 血液型占いロジック
+    │   └── tarot.test.ts         # タロットロジック
     └── routes/
-        └── fortune.test.ts
+        └── fortune.test.ts       # APIエンドポイント
+
+frontend/
+├── __tests__/
+│   ├── components/
+│   │   ├── ScoreDisplay.test.tsx   # スコア表示 (5テスト)
+│   │   ├── ResultCard.test.tsx     # 結果カード (3テスト)
+│   │   ├── ErrorState.test.tsx     # エラー状態 (5テスト)
+│   │   ├── LoadingState.test.tsx   # ローディング (4テスト)
+│   │   └── FortuneCard.test.tsx    # 占術カード (4テスト)
+│   └── lib/
+│       ├── kana-to-romaji.test.ts  # カナ→ローマ字 (5テスト)
+│       └── i18n.test.ts            # 多言語辞書 (5テスト)
+└── e2e/
+    ├── home.spec.ts               # トップページ (4テスト)
+    ├── profile.spec.ts            # プロフィール (6テスト)
+    ├── fortune.spec.ts            # 占術選択 (9テスト)
+    └── navigation.spec.ts         # ナビ・a11y (6テスト)
 ```
 
 ---
@@ -222,56 +234,67 @@ backend/
 
 ---
 
-## 7. 手動テスト: フロントエンド
+## 7. フロントエンド単体テスト（Jest + React Testing Library）
 
-### TC-FE001: 画面遷移
+### TC-FE-UNIT: コンポーネント単体テスト（31ケース）
 
-| テストID | 操作 | 期待結果 |
-|---------|------|---------|
-| TC-FE001-01 | トップページにアクセス | アプリタイトルとCTAボタンが表示 |
-| TC-FE001-02 | CTAボタンクリック（未登録） | `/profile` に遷移 |
-| TC-FE001-03 | プロフィール保存後 | `/fortune` に遷移 |
-| TC-FE001-04 | CTAボタンクリック（登録済み） | `/fortune` に遷移 |
-| TC-FE001-05 | 占術カードクリック | 対応する結果ページに遷移 |
-| TC-FE001-06 | 「他の占いを試す」クリック | `/fortune` に遷移 |
-
-### TC-FE002: プロフィール入力
-
-| テストID | 操作 | 期待結果 |
-|---------|------|---------|
-| TC-FE002-01 | 必須項目未入力で保存 | バリデーションエラー表示 |
-| TC-FE002-02 | 全必須項目入力で保存 | localStorage に保存、遷移 |
-| TC-FE002-03 | 再度プロフィール画面を開く | 保存済みデータが入力欄に表示 |
-
-### TC-FE003: 占い結果表示
-
-| テストID | 操作 | 期待結果 |
-|---------|------|---------|
-| TC-FE003-01 | 星座占い実行 | スコア、ラッキーカラー等が表示 |
-| TC-FE003-02 | 数秘術実行 | 運命数、性格特徴等が表示 |
-| TC-FE003-03 | 血液型占い実行 | 性格、相性ランキング等が表示 |
-| TC-FE003-04 | タロット占い実行 | 3枚のカードと総合メッセージが表示 |
-| TC-FE003-05 | 血液型未登録で血液型占い | 適切なエラーまたは登録誘導 |
-
-### TC-FE004: レスポンシブ
-
-| テストID | 画面幅 | 検証内容 |
-|---------|-------|---------|
-| TC-FE004-01 | 375px（モバイル） | 全画面が崩れず表示 |
-| TC-FE004-02 | 768px（タブレット） | 占術カードが2列表示 |
-| TC-FE004-03 | 1024px（デスクトップ） | 適切な最大幅で中央寄せ |
+| テストスイート | テスト数 | 検証内容 |
+|-------------|---------|---------|
+| ScoreDisplay | 5 | 星5つ表示、aria-label、スコアクランプ(0-5)、小数の丸め |
+| ResultCard | 3 | タイトル・children描画、section要素、h3見出し |
+| ErrorState | 5 | デフォルト/カスタムエラー文、リトライコールバック、role=alert、戻るリンク |
+| LoadingState | 4 | ローディングテキスト、role=status、aria-live=polite、戻るリンク |
+| FortuneCard | 4 | タイトル・説明描画、リンク、無効状態メッセージ、aria-disabled |
+| kana-to-romaji | 5 | 基本変換、長音、スペース区切り、空文字、濁音 |
+| i18n | 5 | 日本語辞書取得、英語辞書取得、全キー一致、ロケール型 |
 
 ---
 
-## 8. テスト実行コマンド
+## 8. E2Eテスト（Playwright）
+
+### TC-E2E: ブラウザ統合テスト（25ケース）
+
+| テストスイート | テスト数 | 検証内容 |
+|-------------|---------|---------|
+| home.spec.ts | 4 | ヒーロー表示、4占術表示、未登録→profile遷移、登録済→fortune遷移 |
+| profile.spec.ts | 6 | フォーム全項目表示、空送信バリデーション、非カタカナエラー、正常保存→fortune遷移、既存データロード、血液型トグル |
+| fortune.spec.ts | 9 | 挨拶表示、4カード表示、星座/数秘/タロット遷移、プロフィール編集リンク、未登録リダイレクト、血液型未設定時の無効表示 |
+| navigation.spec.ts | 6 | ヘッダー表示、ロゴ→ホーム遷移、スキップナビ、404表示、言語切替、見出し階層 |
+
+---
+
+## 9. 旧: 手動テスト（自動化済み）
+
+以下のテストは E2E テスト (Playwright) に自動化移行済み。
+
+| 旧テストID | 自動化先 |
+|-----------|---------|
+| TC-FE001 画面遷移 | home.spec.ts, fortune.spec.ts |
+| TC-FE002 プロフィール入力 | profile.spec.ts |
+| TC-FE003 占い結果表示 | fortune.spec.ts (遷移のみ、結果表示はバックエンド依存) |
+| TC-FE004 レスポンシブ | 手動確認を継続 |
+
+---
+
+## 10. テスト実行コマンド
 
 ```bash
-# バックエンド全テスト
+# バックエンド全テスト (75ケース)
 cd backend && npm test
+
+# フロントエンド単体テスト (31ケース)
+cd frontend && npm test
+
+# フロントエンド E2Eテスト (25ケース)
+cd frontend && npm run test:e2e
 
 # 特定テストのみ
 cd backend && npm test -- --testPathPattern=zodiac
+cd frontend && npm test -- --testPathPattern=ScoreDisplay
 
 # カバレッジ付き
 cd backend && npm test -- --coverage
+
+# E2E UI モード（デバッグ用）
+cd frontend && npm run test:e2e:ui
 ```

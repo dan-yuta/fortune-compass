@@ -2,24 +2,32 @@
 
 ## 1. スコープ
 
-今回実装する最小限のプロダクト。ローカル環境で動作するWebアプリ。
+総合占いWebアプリケーション。AWS ECS Fargate 上で本番稼働中。
 
-### 実装する機能
-- ユーザー情報入力フォーム
+**URL**: https://d71oywvumn06c.cloudfront.net
+
+### 実装済み機能
+- ユーザー情報入力フォーム（バリデーション・アクセシビリティ対応）
 - 星座占い
 - 数秘術
 - 血液型占い
-- タロット占い（3枚引き）
+- タロット占い（3枚引き・フリップアニメーション付き）
 - 占術選択画面
 - 個別占い結果表示
+- PWA 対応（manifest.json、アイコン）
+- 多言語対応（日本語 / English）
+- OGP / Twitter Card メタデータ + 動的OG画像生成
+- カスタム404ページ
+- Framer Motion アニメーション（ページ遷移、カード表示）
+- Docker 化 + AWS ECS Fargate デプロイ
+- GitHub Actions CI/CD
 
-### 実装しない機能（将来対応）
+### 未実装（将来対応）
 - 四柱推命、九星気学、手相AI
 - AI総合診断（Claude API連携）
 - 今日の運勢バッチ処理
 - 履歴・お気に入り・SNSシェア
-- DynamoDB / Docker / AWS インフラ
-- ユーザー認証
+- DynamoDB / ユーザー認証
 
 ---
 
@@ -27,10 +35,16 @@
 
 | レイヤー | 技術 | バージョン |
 |---------|------|-----------|
-| フロントエンド | Next.js (App Router) | 15.x |
-| UI | Tailwind CSS + shadcn/ui | - |
-| バックエンド | Node.js + Express + TypeScript | - |
+| フロントエンド | Next.js (App Router) | 16.1.6 |
+| UI | Tailwind CSS + Lucide React | 4.x / 0.564.x |
+| アニメーション | Framer Motion | 12.x |
+| バックエンド | Express + TypeScript | 5.2.x |
 | データ保持 | ブラウザ localStorage | - |
+| テスト (Backend) | Jest + Supertest | 30.x |
+| テスト (Frontend) | Jest + React Testing Library | 30.x / 16.x |
+| E2E テスト | Playwright (Chromium) | 1.58.x |
+| インフラ | Terraform + AWS ECS Fargate | >= 1.5 |
+| CI/CD | GitHub Actions (OIDC → ECR → ECS) | - |
 | 開発実行 | `npm run dev`（concurrentlyで同時起動） | - |
 
 - フロントエンド: ポート 3000
@@ -49,6 +63,7 @@
 | 5 | 数秘術結果 | `/fortune/numerology` | 数秘術の結果表示 |
 | 6 | 血液型占い結果 | `/fortune/blood-type` | 血液型占いの結果表示 |
 | 7 | タロット結果 | `/fortune/tarot` | タロット3枚引きの結果表示 |
+| 8 | 404エラー | `/*` (不明パス) | カスタム404ページ |
 
 ---
 
@@ -58,10 +73,13 @@
 
 | Method | Path | 概要 |
 |--------|------|------|
+| GET | `/api/health` | ヘルスチェック（ALB用） |
 | POST | `/api/fortune/zodiac` | 星座占い実行 |
 | POST | `/api/fortune/numerology` | 数秘術実行 |
 | POST | `/api/fortune/blood-type` | 血液型占い実行 |
 | POST | `/api/fortune/tarot` | タロット占い実行 |
+
+フロントエンドヘルスチェック: `GET /health`（Next.js Route Handler）
 
 ※ プロフィールはlocalStorageのみで管理するため、プロフィールAPIは不要。
 
@@ -252,52 +270,58 @@
 ```
 fortune-compass/
 ├── package.json              # ルート（concurrently）
+├── .github/workflows/
+│   └── deploy.yml            # GitHub Actions CI/CD
+├── infra/terraform/          # AWS インフラ (Terraform)
+├── docs/                     # 設計ドキュメント
 ├── frontend/
 │   ├── package.json
 │   ├── next.config.ts
-│   ├── tailwind.config.ts
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx              # トップページ
-│   │   │   ├── profile/
-│   │   │   │   └── page.tsx          # プロフィール入力
-│   │   │   └── fortune/
-│   │   │       ├── page.tsx          # 占術選択
-│   │   │       ├── zodiac/
-│   │   │       │   └── page.tsx
-│   │   │       ├── numerology/
-│   │   │       │   └── page.tsx
-│   │   │       ├── blood-type/
-│   │   │       │   └── page.tsx
-│   │   │       └── tarot/
-│   │   │           └── page.tsx
-│   │   ├── components/
-│   │   │   ├── ui/                   # shadcn/ui
-│   │   │   └── fortune/              # 占い関連
-│   │   └── lib/
-│   │       ├── api-client.ts         # バックエンドAPI呼び出し
-│   │       └── storage.ts            # localStorage操作
-│   └── tsconfig.json
+│   ├── jest.config.ts        # Jest 設定
+│   ├── playwright.config.ts  # Playwright E2E 設定
+│   ├── Dockerfile            # 本番コンテナ
+│   ├── __tests__/            # ユニットテスト (31ケース)
+│   ├── e2e/                  # E2Eテスト (25ケース)
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   ├── manifest.json     # PWA マニフェスト
+│   │   └── icon-*.svg        # PWA アイコン
+│   └── src/
+│       ├── app/
+│       │   ├── layout.tsx        # ルートレイアウト (OGP, PWA, viewport)
+│       │   ├── page.tsx          # トップページ
+│       │   ├── not-found.tsx     # カスタム404
+│       │   ├── opengraph-image.tsx # 動的OG画像
+│       │   ├── health/           # ヘルスチェック
+│       │   ├── profile/
+│       │   │   └── page.tsx      # プロフィール入力
+│       │   └── fortune/
+│       │       ├── page.tsx      # 占術選択
+│       │       ├── zodiac/       # 星座占い結果
+│       │       ├── numerology/   # 数秘術結果
+│       │       ├── blood-type/   # 血液型占い結果
+│       │       └── tarot/        # タロット結果
+│       ├── components/
+│       │   ├── Header.tsx
+│       │   ├── LanguageSwitcher.tsx # 言語切替
+│       │   ├── motion/           # Framer Motion
+│       │   └── fortune/          # 占い関連
+│       └── lib/
+│           ├── api-client.ts     # API呼び出し
+│           ├── storage.ts        # localStorage操作
+│           ├── useFortune.ts     # 占い共通フック
+│           ├── kana-to-romaji.ts # カタカナ→ローマ字変換
+│           └── i18n/             # 多言語対応 (ja/en)
 ├── backend/
 │   ├── package.json
-│   ├── tsconfig.json
+│   ├── Dockerfile            # 本番コンテナ
 │   ├── src/
-│   │   ├── index.ts                  # Expressエントリポイント
+│   │   ├── index.ts          # Express (:8080) + ヘルスチェック
 │   │   ├── routes/
-│   │   │   └── fortune.ts            # 占いルート
 │   │   ├── services/
-│   │   │   ├── zodiac.ts
-│   │   │   ├── numerology.ts
-│   │   │   ├── blood-type.ts
-│   │   │   └── tarot.ts
 │   │   └── data/
-│   │       ├── zodiac-data.ts
-│   │       ├── tarot-cards.ts
-│   │       └── blood-type-data.ts
-│   └── tsconfig.json
+│   └── __tests__/            # テスト (75ケース)
 └── docs/
-    └── spec-v1.md                    # この仕様書
 ```
 
 ---
@@ -306,15 +330,40 @@ fortune-compass/
 
 - **テーマ:** 神秘的・宇宙的な雰囲気（ダークベース + 紫/金のアクセント）
 - **レスポンシブ:** モバイルファースト
-- **アニメーション:** 最小限（ページ遷移程度）
-- **フォント:** Noto Sans JP（日本語）
+- **アニメーション:** Framer Motion（ページ遷移、カードスタガー表示、タロットフリップ）
+- **フォント:** Inter（英数字）+ Noto Sans JP（日本語）
+- **アクセシビリティ:** ARIA属性、スキップナビ、フォーカスリング、セマンティックHTML
+- **多言語:** 日本語 / English 切替（クライアントサイドContext）
+- **PWA:** ホーム画面追加対応（manifest.json）
 
 ---
 
-## 9. 開発手順
+## 9. テスト
 
-1. プロジェクト初期セットアップ（Next.js + Express + モノレポ）
-2. バックエンド: 占いロジック + APIエンドポイント実装
-3. フロントエンド: 画面実装（トップ → プロフィール → 占術選択 → 結果画面）
-4. フロントエンド ↔ バックエンド 結合
-5. 動作確認・微調整
+| 種別 | ツール | 件数 |
+|------|-------|------|
+| バックエンド単体 + API | Jest + Supertest | 75 |
+| フロントエンド単体 | Jest + React Testing Library | 31 |
+| E2E | Playwright (Chromium) | 25 |
+| **合計** | | **131** |
+
+```bash
+# バックエンドテスト
+cd backend && npm test
+
+# フロントエンド ユニットテスト
+cd frontend && npm test
+
+# フロントエンド E2Eテスト
+cd frontend && npm run test:e2e
+```
+
+---
+
+## 10. デプロイ
+
+AWS ECS Fargate + CloudFront 構成。GitHub Actions で CI/CD。
+
+- `master` ブランチへの push で自動デプロイ
+- バックエンドテスト → Docker ビルド → ECR push → Terraform apply
+- URL: https://d71oywvumn06c.cloudfront.net

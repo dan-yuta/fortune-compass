@@ -370,3 +370,59 @@ API呼び出し中の表示:
 ```
 
 - リトライボタンで再度API呼び出し
+- `role="alert"` でスクリーンリーダーに通知
+- 「占い一覧に戻る」リンク付き
+
+---
+
+## 6. カスタム404ページ
+
+```
+┌──────────────────────────────┐
+│                              │
+│        🧭 404                │
+│                              │
+│   ページが見つかりません      │
+│   お探しのページは存在しない  │
+│   か、移動された可能性があり  │
+│   ます。                     │
+│                              │
+│   [トップページに戻る]       │
+│                              │
+└──────────────────────────────┘
+```
+
+- Compass アイコン + 404 表示
+- トップページへの戻るリンク
+
+---
+
+## 7. 追加UI要素
+
+### スキップナビゲーション
+- ページ最上部に「メインコンテンツへスキップ」リンク（sr-only、フォーカスで表示）
+
+### 言語切替（LanguageSwitcher）
+- ヘッダー右側に Globe アイコン + "EN"/"JP" テキスト
+- クリックで日本語/英語を切替（localStorage に保存）
+
+### ローディング状態（更新）
+- `role="status"` + `aria-live="polite"` でアクセシビリティ対応
+- 「占い一覧に戻る」リンク付き
+
+### アクセシビリティ対応
+- 全インタラクティブ要素に `focus:ring-2 focus:ring-mystic-purple/60`
+- フォーム要素に `aria-required`, `aria-invalid`, `aria-describedby`
+- 血液型ボタンに `aria-pressed`
+- スコア表示に `role="img"` + `aria-label="スコア: N点（5点満点）"`
+- 装飾アイコンに `aria-hidden="true"`
+- `<section>`, `<nav>`, `<fieldset>/<legend>` によるセマンティック構造
+
+### OGP / SNS メタデータ
+- Open Graph: title, description, url, siteName, locale, type, images
+- Twitter Card: summary_large_image
+- 動的OG画像: `opengraph-image.tsx`（Next.js ImageResponse API）
+
+### PWA
+- `manifest.json`: アプリ名、アイコン(192/512)、テーマカラー、表示モード
+- SVG アイコン3種（通常192/512、マスカブル）

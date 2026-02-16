@@ -158,7 +158,7 @@ Tailwind CSSのデフォルトスペーシングスケールを使用。
 
 ## 5. アイコン
 
-[Lucide React](https://lucide.dev/) を使用（shadcn/ui 標準）。
+[Lucide React](https://lucide.dev/) を使用。
 
 | 用途 | アイコン名 |
 |------|-----------|
@@ -170,6 +170,10 @@ Tailwind CSSのデフォルトスペーシングスケールを使用。
 | プロフィール | `User` |
 | スコア（満） | `Star`（fill） |
 | スコア（空） | `Star`（outline） |
+| 設定 | `Settings` |
+| 保存 | `Save` |
+| 言語切替 | `Globe` |
+| コンパス (404) | `Compass` |
 
 ---
 
@@ -192,15 +196,25 @@ Tailwind CSS デフォルトを使用。
 
 ## 7. アニメーション / トランジション
 
-MVPでは最小限に抑える。
+Framer Motion を導入済み。CSS トランジションと併用。
 
 | 対象 | アニメーション | 仕様 |
 |------|-------------|------|
 | ボタンホバー | opacity + shadow | `transition-all duration-200` |
-| カードホバー | translateY + border色 | `transition-all duration-200` |
-| ページ遷移 | なし（MVP） | 将来的にframer-motion導入 |
-| タロットカード | なし（MVP） | 将来的にフリップアニメーション |
+| ボタンタップ | scale | `whileTap={{ scale: 0.97 }}` (Framer Motion) |
+| カードホバー | translateY + border色 | `transition-all duration-200 hover:-translate-y-0.5` |
+| トップページ | ヒーローフェードイン + 星回転 | Framer Motion `initial/animate` |
+| 占術選択 | カードスタガー表示 | Framer Motion `staggerChildren: 0.1` |
+| タロットカード | フリップアニメーション | Framer Motion `rotateY: 90→0` |
+| ページ遷移 | フェード + スライド | PageTransition コンポーネント |
 | スコア表示 | フェードイン | `animate-fade-in`（カスタム） |
+
+### Framer Motion コンポーネント
+| コンポーネント | ファイル | 用途 |
+|--------------|---------|------|
+| PageTransition | `components/motion/PageTransition.tsx` | ページフェード+スライド |
+| StaggerContainer / StaggerItem | `components/motion/StaggerChildren.tsx` | 順次表示 |
+| CardReveal | `components/motion/CardReveal.tsx` | カードスケール+フェード |
 
 ---
 
