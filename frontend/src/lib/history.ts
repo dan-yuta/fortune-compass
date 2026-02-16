@@ -1,6 +1,39 @@
-import { ZodiacResult, NumerologyResult, BloodTypeResult, TarotResult } from "./types";
+import {
+  ZodiacResult,
+  NumerologyResult,
+  BloodTypeResult,
+  TarotResult,
+  EtoResult,
+  BirthFlowerResult,
+  BirthstoneResult,
+  WeekdayResult,
+  KyuseiResult,
+  AnimalResult,
+  ShichuuResult,
+  OmikujiResult,
+  RuneResult,
+  FengshuiResult,
+  DreamResult,
+  PalmResult,
+} from "./types";
 
-export type FortuneResult = ZodiacResult | NumerologyResult | BloodTypeResult | TarotResult;
+export type FortuneResult =
+  | ZodiacResult
+  | NumerologyResult
+  | BloodTypeResult
+  | TarotResult
+  | EtoResult
+  | BirthFlowerResult
+  | BirthstoneResult
+  | WeekdayResult
+  | KyuseiResult
+  | AnimalResult
+  | ShichuuResult
+  | OmikujiResult
+  | RuneResult
+  | FengshuiResult
+  | DreamResult
+  | PalmResult;
 
 export interface HistoryEntry {
   id: string;
@@ -62,6 +95,30 @@ function getLabel(result: FortuneResult): string {
       return `血液型占い - ${result.bloodType}型`;
     case "tarot":
       return `タロット占い - ${result.cards.map((c) => c.name).join("・")}`;
+    case "eto":
+      return `干支占い - ${result.animal}`;
+    case "birth-flower":
+      return `誕生花占い - ${result.flower}`;
+    case "birthstone":
+      return `誕生石占い - ${result.stone}`;
+    case "weekday":
+      return `曜日占い - ${result.weekday}`;
+    case "kyusei":
+      return `九星気学 - ${result.star}`;
+    case "animal":
+      return `動物占い - ${result.color}の${result.animal}`;
+    case "shichuu":
+      return `四柱推命 - ${result.dayMaster}`;
+    case "omikuji":
+      return `おみくじ - ${result.rank}`;
+    case "rune":
+      return `ルーン占い - ${result.stones.map((s) => s.name).join("・")}`;
+    case "fengshui":
+      return `風水占い - ${result.gua}`;
+    case "dream":
+      return `夢占い - ${result.keyword}`;
+    case "palm":
+      return `手相占い`;
     default:
       return "占い結果";
   }

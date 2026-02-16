@@ -58,8 +58,12 @@ export default function HomePage() {
             Fortune Compass
           </h1>
 
-          <p className="text-xl text-text-secondary mb-10">
+          <p className="text-xl text-text-secondary mb-2">
             あなたの運命を照らす
+          </p>
+
+          <p className="text-xs text-text-muted mb-10">
+            ver 1.00
           </p>
 
           <motion.button

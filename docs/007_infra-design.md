@@ -252,7 +252,7 @@ runner:  standalone/ + public/ + static/ コピー → node server.js
 
 ### 7.1 トリガー
 
-- `main` ブランチへの push
+- `master` ブランチへの push
 - 手動実行（workflow_dispatch）
 
 ### 7.2 認証方式
@@ -268,7 +268,7 @@ GitHub Actions OIDC を使用。長寿命のアクセスキーは使用しない
 ### 7.3 パイプラインフロー
 
 ```
-Push to main
+Push to master
      │
      ├─ Job: test-backend
      │    npm ci → npm test (75 テスト)
@@ -353,6 +353,7 @@ infra/terraform/
 | NODE_ENV | production | 実行環境 |
 | PORT | 8080 | リッスンポート |
 | CORS_ORIGIN | https://<CloudFront_Domain> | CORS 許可オリジン（Terraform が CloudFront ドメインから自動設定） |
+| ANTHROPIC_API_KEY | (Secrets Manager) | Claude Vision API キー（手相占い用） |
 
 ### 9.2 Frontend (ECS Task Definition)
 
@@ -434,10 +435,10 @@ infra/terraform/
 
 ### 11.2 通常デプロイ（自動）
 
-`main` ブランチに push するだけで GitHub Actions が自動実行：
+`master` ブランチに push するだけで GitHub Actions が自動実行：
 
 ```
-git push origin main
+git push origin master
   → test-backend (75 テスト)
   → build-and-deploy (Docker build → ECR push → terraform apply)
   → ECS ローリングデプロイ

@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Star, Hash, Droplet, Layers, Settings, LayoutDashboard } from "lucide-react";
+import { Settings, LayoutDashboard } from "lucide-react";
 import { motion } from "framer-motion";
 import { getProfileSnapshot, subscribeStorage } from "@/lib/storage";
 import FortuneCard from "@/components/fortune/FortuneCard";
+import {
+  fortuneRegistry,
+  categoryOrder,
+  categoryLabels,
+  type FortuneCategory,
+} from "@/lib/fortune-registry";
 
 export default function FortuneSelectionPage() {
   const router = useRouter();
@@ -15,6 +21,7 @@ export default function FortuneSelectionPage() {
     getProfileSnapshot,
     () => null
   );
+  const [activeCategory, setActiveCategory] = useState<FortuneCategory>("classic");
 
   useEffect(() => {
     if (profile === null) {
@@ -26,12 +33,9 @@ export default function FortuneSelectionPage() {
     return null;
   }
 
-  const cards = [
-    { title: "星座占い", icon: Star, description: "あなたの星座から今日の運勢を占います", href: "/fortune/zodiac" },
-    { title: "数秘術", icon: Hash, description: "名前と生年月日から運命数を算出します", href: "/fortune/numerology" },
-    { title: "血液型占い", icon: Droplet, description: "血液型から性格と相性を占います", href: "/fortune/blood-type", disabled: !profile.bloodType, disabledMessage: "血液型が未設定です。プロフィールで設定してください。" },
-    { title: "タロット占い", icon: Layers, description: "タロットカードがあなたの運命を導きます", href: "/fortune/tarot" },
-  ];
+  const filteredFortunes = fortuneRegistry.filter(
+    (f) => f.category === activeCategory
+  );
 
   return (
     <motion.div
@@ -75,26 +79,58 @@ export default function FortuneSelectionPage() {
         </Link>
       </motion.div>
 
+      {/* Category Tabs */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+        {categoryOrder.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+              activeCategory === cat
+                ? "bg-mystic-purple/20 text-text-primary border border-mystic-purple/60"
+                : "text-text-muted border border-mystic-purple/20 hover:border-mystic-purple/40 hover:text-text-secondary"
+            }`}
+          >
+            {categoryLabels[cat]}
+          </button>
+        ))}
+      </div>
+
       <motion.div
+        key={activeCategory}
         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
         initial="hidden"
         animate="show"
         variants={{
           hidden: { opacity: 0 },
-          show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
+          show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
         }}
       >
-        {cards.map((card) => (
-          <motion.div
-            key={card.title}
-            variants={{
-              hidden: { opacity: 0, y: 20, scale: 0.97 },
-              show: { opacity: 1, y: 0, scale: 1 },
-            }}
-          >
-            <FortuneCard {...card} />
-          </motion.div>
-        ))}
+        {filteredFortunes.map((fortune) => {
+          const isBloodType = fortune.id === "blood-type";
+          return (
+            <motion.div
+              key={fortune.id}
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.97 },
+                show: { opacity: 1, y: 0, scale: 1 },
+              }}
+            >
+              <FortuneCard
+                title={fortune.label}
+                icon={fortune.icon}
+                description={fortune.description}
+                href={fortune.path}
+                disabled={isBloodType && !profile.bloodType}
+                disabledMessage={
+                  isBloodType && !profile.bloodType
+                    ? "血液型が未設定です。プロフィールで設定してください。"
+                    : undefined
+                }
+              />
+            </motion.div>
+          );
+        })}
       </motion.div>
 
       <motion.div

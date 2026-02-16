@@ -1,64 +1,94 @@
 # Fortune Compass
 
-総合占いWebアプリケーション。4つの占術（星座占い・数秘術・血液型占い・タロット占い）で毎日の運勢を占えます。
+総合占いWebアプリケーション。16の占術を4カテゴリ（定番占い・誕生日占い・伝統占い・特殊占い）で提供し、毎日の運勢を占えます。
 
 **URL**: https://d71oywvumn06c.cloudfront.net
 
 ## アーキテクチャ
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       Browser                               │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │              Next.js Frontend (:3000)                  │  │
-│  │                                                       │  │
-│  │  ┌─────────┐  ┌──────────┐  ┌─────────────────────┐  │  │
-│  │  │  トップ  │→│プロフィール│→│    占術選択          │  │  │
-│  │  │ page.tsx │  │profile/  │  │  fortune/page.tsx    │  │  │
-│  │  └─────────┘  └──────────┘  └──┬──┬──┬──┬─────────┘  │  │
-│  │                                │  │  │  │             │  │
-│  │              ┌─────────────────┘  │  │  └──────┐      │  │
-│  │              ▼        ▼           ▼          ▼        │  │
-│  │         ┌────────┐┌────────┐┌────────┐┌────────┐     │  │
-│  │         │星座占い││数秘術  ││血液型  ││タロット│     │  │
-│  │         │zodiac/ ││numero- ││blood-  ││tarot/  │     │  │
-│  │         │        ││logy/   ││type/   ││        │     │  │
-│  │         └───┬────┘└───┬────┘└───┬────┘└───┬────┘     │  │
-│  │             │         │         │         │           │  │
-│  │             └─────┬───┴────┬────┘         │           │  │
-│  │                   ▼        ▼              ▼           │  │
-│  │              lib/api-client.ts                        │  │
-│  │              fetch("/api/fortune/*")                   │  │
-│  └──────────────────────┬────────────────────────────────┘  │
-│                         │                                   │
-│              Next.js Rewrites (/api/* → :8080)              │
-│                         │                                   │
-│  ┌──────────────────────▼────────────────────────────────┐  │
-│  │            Express Backend (:8080)                     │  │
-│  │                                                       │  │
-│  │  routes/fortune.ts                                    │  │
-│  │  ┌──────────────────────────────────────────────────┐ │  │
-│  │  │ POST /api/fortune/zodiac     → zodiac.ts         │ │  │
-│  │  │ POST /api/fortune/numerology → numerology.ts     │ │  │
-│  │  │ POST /api/fortune/blood-type → blood-type.ts     │ │  │
-│  │  │ POST /api/fortune/tarot      → tarot.ts          │ │  │
-│  │  │ POST /api/fortune/dashboard  → dashboard.ts      │ │  │
-│  │  └──────────────────────────────────────────────────┘ │  │
-│  │                         │                             │  │
-│  │       ┌─────────────────┼─────────────────┐           │  │
-│  │       ▼                 ▼                 ▼           │  │
-│  │  data/            utils/             services/        │  │
-│  │  zodiac-data.ts   seed-random.ts     zodiac.ts       │  │
-│  │  tarot-cards.ts   (djb2 hash +       numerology.ts   │  │
-│  │  blood-type-      daily seed)        blood-type.ts   │  │
-│  │    data.ts                           tarot.ts        │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │                  localStorage                         │  │
-│  │         プロフィール永続化 + 占い履歴保存               │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                            Browser                                   │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │                  Next.js Frontend (:3000)                      │  │
+│  │                                                                │  │
+│  │  ┌─────────┐  ┌──────────┐  ┌──────────────────────────────┐  │  │
+│  │  │  トップ  │→│プロフィール│→│        占術選択               │  │  │
+│  │  │ page.tsx │  │profile/  │  │  fortune/page.tsx             │  │  │
+│  │  └─────────┘  └──────────┘  └──┬──┬──┬──┬──┬──┬──┬──┬──┬──┘  │  │
+│  │          fortune-registry.ts   │  │  │  │  │  │  │  │  │      │  │
+│  │    ┌───────────────────────────┘  │  │  │  │  │  │  │  │      │  │
+│  │    │  定番(4)     誕生日(8)       │ 伝統(2)  │  特殊(2)       │  │
+│  │    ▼              ▼               ▼          ▼                │  │
+│  │  ┌────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐        │  │
+│  │  │zodiac  │ │eto       │ │omikuji     │ │dream     │        │  │
+│  │  │numero- │ │kyusei    │ │rune        │ │palm      │        │  │
+│  │  │logy    │ │animal    │ └────────────┘ └──────────┘        │  │
+│  │  │blood-  │ │birth-    │                                     │  │
+│  │  │type    │ │flower    │    + dashboard (定番4占術一括)       │  │
+│  │  │tarot   │ │birthstone│                                     │  │
+│  │  └────────┘ │shichuu   │                                     │  │
+│  │             │weekday   │                                     │  │
+│  │             │fengshui  │                                     │  │
+│  │             └──────────┘                                     │  │
+│  │              lib/api-client.ts                                │  │
+│  │              fetch("/api/fortune/*")                           │  │
+│  └───────────────────────┬───────────────────────────────────────┘  │
+│                          │                                          │
+│               Next.js Rewrites (/api/* → :8080)                     │
+│                          │                                          │
+│  ┌───────────────────────▼───────────────────────────────────────┐  │
+│  │              Express Backend (:8080)                           │  │
+│  │                                                               │  │
+│  │  routes/fortune.ts                                            │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │ POST /api/fortune/zodiac      → zodiac.ts              │  │  │
+│  │  │ POST /api/fortune/numerology  → numerology.ts           │  │  │
+│  │  │ POST /api/fortune/blood-type  → blood-type.ts           │  │  │
+│  │  │ POST /api/fortune/tarot       → tarot.ts                │  │  │
+│  │  │ POST /api/fortune/eto         → eto.ts                  │  │  │
+│  │  │ POST /api/fortune/kyusei      → kyusei.ts               │  │  │
+│  │  │ POST /api/fortune/animal      → animal.ts               │  │  │
+│  │  │ POST /api/fortune/birth-flower→ birth-flower.ts         │  │  │
+│  │  │ POST /api/fortune/birthstone  → birthstone.ts           │  │  │
+│  │  │ POST /api/fortune/shichuu     → shichuu.ts              │  │  │
+│  │  │ POST /api/fortune/weekday     → weekday.ts              │  │  │
+│  │  │ POST /api/fortune/fengshui    → fengshui.ts             │  │  │
+│  │  │ POST /api/fortune/omikuji     → omikuji.ts              │  │  │
+│  │  │ POST /api/fortune/rune        → rune.ts                 │  │  │
+│  │  │ POST /api/fortune/dream       → dream.ts                │  │  │
+│  │  │ POST /api/fortune/palm        → palm.ts                 │  │  │
+│  │  │ POST /api/fortune/dashboard   → dashboard.ts            │  │  │
+│  │  │ GET  /api/health                                        │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  │                          │                                    │  │
+│  │       ┌──────────────────┼──────────────────┐                 │  │
+│  │       ▼                  ▼                  ▼                 │  │
+│  │  data/               utils/            services/              │  │
+│  │  zodiac-data.ts      seed-random.ts    zodiac.ts              │  │
+│  │  tarot-cards.ts      (djb2 hash +      numerology.ts          │  │
+│  │  blood-type-data.ts   daily seed)      blood-type.ts          │  │
+│  │  eto-data.ts                           tarot.ts               │  │
+│  │  kyusei-data.ts                        eto.ts                 │  │
+│  │  animal-data.ts                        kyusei.ts              │  │
+│  │  birth-flower-data.ts                  animal.ts              │  │
+│  │  birthstone-data.ts                    birth-flower.ts        │  │
+│  │  shichuu-data.ts                       birthstone.ts          │  │
+│  │  weekday-data.ts                       shichuu.ts             │  │
+│  │  fengshui-data.ts                      weekday.ts             │  │
+│  │  omikuji-data.ts                       fengshui.ts            │  │
+│  │  rune-data.ts                          omikuji.ts             │  │
+│  │  dream-data.ts                         rune.ts                │  │
+│  │                                        dream.ts               │  │
+│  │                                        palm.ts                │  │
+│  │                                        dashboard.ts           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                     localStorage                              │  │
+│  │            プロフィール永続化 + 占い履歴保存                     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 技術スタック
@@ -112,17 +142,40 @@ fortune-compass/
 │   ├── src/
 │   │   ├── index.ts          #   エントリポイント (:8080)
 │   │   ├── routes/
-│   │   │   └── fortune.ts    #   5エンドポイントのルーティング
-│   │   ├── services/         #   占いロジック
+│   │   │   └── fortune.ts    #   18エンドポイントのルーティング (16占術+dashboard+health)
+│   │   ├── services/         #   占いロジック (17ファイル)
 │   │   │   ├── zodiac.ts     #     星座占い
 │   │   │   ├── numerology.ts #     数秘術
 │   │   │   ├── blood-type.ts #     血液型占い
 │   │   │   ├── tarot.ts      #     タロット占い
-│   │   │   └── dashboard.ts  #     総合ダッシュボード
-│   │   ├── data/             #   マスターデータ
+│   │   │   ├── eto.ts        #     干支占い
+│   │   │   ├── kyusei.ts     #     九星気学
+│   │   │   ├── animal.ts     #     動物占い
+│   │   │   ├── birth-flower.ts #   誕生花占い
+│   │   │   ├── birthstone.ts #     誕生石占い
+│   │   │   ├── shichuu.ts    #     四柱推命
+│   │   │   ├── weekday.ts    #     曜日占い
+│   │   │   ├── fengshui.ts   #     風水占い
+│   │   │   ├── omikuji.ts    #     おみくじ
+│   │   │   ├── rune.ts       #     ルーン占い
+│   │   │   ├── dream.ts      #     夢占い
+│   │   │   ├── palm.ts       #     手相占い (Claude Vision API)
+│   │   │   └── dashboard.ts  #     総合ダッシュボード (定番4占術集約)
+│   │   ├── data/             #   マスターデータ (14ファイル)
 │   │   │   ├── zodiac-data.ts
 │   │   │   ├── tarot-cards.ts
-│   │   │   └── blood-type-data.ts
+│   │   │   ├── blood-type-data.ts
+│   │   │   ├── eto-data.ts
+│   │   │   ├── kyusei-data.ts
+│   │   │   ├── animal-data.ts
+│   │   │   ├── birth-flower-data.ts
+│   │   │   ├── birthstone-data.ts
+│   │   │   ├── shichuu-data.ts
+│   │   │   ├── weekday-data.ts
+│   │   │   ├── fengshui-data.ts
+│   │   │   ├── omikuji-data.ts
+│   │   │   ├── rune-data.ts
+│   │   │   └── dream-data.ts
 │   │   └── utils/
 │   │       └── seed-random.ts #  シード付き乱数 (日替わり)
 │   └── __tests__/            #   テスト (75ケース)
@@ -157,12 +210,24 @@ fortune-compass/
         │   ├── history/
         │   │   └── page.tsx      # 占い履歴一覧
         │   └── fortune/
-        │       ├── page.tsx      # 占術選択
+        │       ├── page.tsx      # 占術選択 (カテゴリ別表示)
         │       ├── dashboard/    # 総合運勢ダッシュボード
         │       ├── zodiac/       # 星座占い結果
         │       ├── numerology/   # 数秘術結果
         │       ├── blood-type/   # 血液型占い結果
-        │       └── tarot/        # タロット占い結果
+        │       ├── tarot/        # タロット占い結果
+        │       ├── eto/          # 干支占い結果
+        │       ├── kyusei/       # 九星気学結果
+        │       ├── animal/       # 動物占い結果
+        │       ├── birth-flower/ # 誕生花占い結果
+        │       ├── birthstone/   # 誕生石占い結果
+        │       ├── shichuu/      # 四柱推命結果
+        │       ├── weekday/      # 曜日占い結果
+        │       ├── fengshui/     # 風水占い結果
+        │       ├── omikuji/      # おみくじ結果
+        │       ├── rune/         # ルーン占い結果
+        │       ├── dream/        # 夢占い結果
+        │       └── palm/         # 手相占い結果
         ├── components/
         │   ├── Header.tsx
         │   ├── LanguageSwitcher.tsx # 言語切替 (ja/en)
@@ -177,7 +242,7 @@ fortune-compass/
         │       ├── ErrorState.tsx
         │       ├── ResultCard.tsx
         │       ├── RadarChart.tsx     # SVGレーダーチャート
-        │       ├── OtherFortunes.tsx  # 他占術へのショートカット
+        │       ├── OtherFortunes.tsx  # 他占術へのショートカット (15占術)
         │       └── ShareButtons.tsx   # SNSシェアボタン
         └── lib/
             ├── types.ts          # 型定義
@@ -185,6 +250,7 @@ fortune-compass/
             ├── history.ts        # localStorage管理 (占い履歴)
             ├── api-client.ts     # API呼び出し
             ├── useFortune.ts     # 占い共通フック (結果自動保存)
+            ├── fortune-registry.ts # 16占術メタ情報 (カテゴリ・アイコン・パス)
             ├── kana-to-romaji.ts # カタカナ→ローマ字変換 (外来語対応)
             └── i18n/             # 多言語対応
                 ├── dictionaries.ts # 辞書 (ja/en)
@@ -196,6 +262,7 @@ fortune-compass/
 ### 前提条件
 
 - Node.js 20 以上
+- `ANTHROPIC_API_KEY` 環境変数（手相占い用。Claude Vision API を使用）
 
 ### インストール
 
@@ -239,11 +306,11 @@ cd backend && npm run build
 
 | 機能 | 説明 |
 |-----|------|
-| 4占術 | 星座占い・数秘術・血液型占い・タロット |
-| 総合運勢ダッシュボード | 4占術一括実行 + レーダーチャート (総合運/恋愛運/仕事運/金運) |
+| 16占術 (4カテゴリ) | **定番**: 星座占い・数秘術・血液型占い・タロット / **誕生日**: 干支・九星気学・動物占い・誕生花・誕生石・四柱推命・曜日占い・風水 / **伝統**: おみくじ・ルーン / **特殊**: 夢占い・手相占い |
+| 総合運勢ダッシュボード | 定番4占術一括実行 + レーダーチャート (総合運/恋愛運/仕事運/金運) |
 | SNSシェア | 結果をX(Twitter)/LINE/Facebookでシェア + リンクコピー |
 | 占い履歴 | localStorage に過去の結果を保存・一覧表示 (最大50件) |
-| 結果→他占術遷移 | 結果画面下部に他3占術へのショートカット |
+| 結果→他占術遷移 | 結果画面下部に他15占術へのショートカット |
 | PWA | ホーム画面追加対応 (manifest.json) |
 | OGP / SNS Card | Open Graph + Twitter Card メタデータ |
 | SEO | sitemap.xml, robots.txt, JSON-LD 構造化データ |
@@ -255,7 +322,7 @@ cd backend && npm run build
 
 ## API エンドポイント
 
-すべて `POST` メソッド。フロントエンドからは Next.js の rewrites 経由でアクセスします。
+`POST` 17エンドポイント + `GET` 1エンドポイント。フロントエンドからは Next.js の rewrites 経由でアクセスします。
 
 | エンドポイント | リクエストボディ | 説明 |
 |--------------|----------------|------|
@@ -263,7 +330,20 @@ cd backend && npm run build
 | `/api/fortune/numerology` | `{ birthday: "YYYY-MM-DD", name: "ROMAJI" }` | 数秘術 |
 | `/api/fortune/blood-type` | `{ bloodType: "A" \| "B" \| "O" \| "AB" }` | 血液型占い |
 | `/api/fortune/tarot` | `{}` | タロット占い |
+| `/api/fortune/eto` | `{ birthday: "YYYY-MM-DD" }` | 干支占い |
+| `/api/fortune/kyusei` | `{ birthday: "YYYY-MM-DD" }` | 九星気学 |
+| `/api/fortune/animal` | `{ birthday: "YYYY-MM-DD" }` | 動物占い |
+| `/api/fortune/birth-flower` | `{ birthday: "YYYY-MM-DD" }` | 誕生花占い |
+| `/api/fortune/birthstone` | `{ birthday: "YYYY-MM-DD" }` | 誕生石占い |
+| `/api/fortune/shichuu` | `{ birthday: "YYYY-MM-DD" }` | 四柱推命 |
+| `/api/fortune/weekday` | `{ birthday: "YYYY-MM-DD" }` | 曜日占い |
+| `/api/fortune/fengshui` | `{ birthday: "YYYY-MM-DD", gender?: "male" \| "female" }` | 風水占い |
+| `/api/fortune/omikuji` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI" }` | おみくじ |
+| `/api/fortune/rune` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI" }` | ルーン占い |
+| `/api/fortune/dream` | `{ keyword: "キーワード" }` | 夢占い |
+| `/api/fortune/palm` | `{ image: "base64データ" }` | 手相占い (Claude Vision API) |
 | `/api/fortune/dashboard` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI", bloodType?: "A" }` | 総合ダッシュボード |
+| `GET /api/health` | - | ヘルスチェック |
 
 ## 占いロジック
 
@@ -273,6 +353,18 @@ cd backend && npm run build
 | 数秘術 | 生年月日の各桁合計→運命数（マスターナンバー11/22/33保持）+ ピタゴリアン変換 | はい |
 | 血液型占い | 固定性格データ + djb2シードで日替わりスコア | はい |
 | タロット | Fisher-Yates シャッフル → 大アルカナ22枚から3枚抽出 + 50%正逆判定 | いいえ（毎回ランダム） |
+| 干支占い | 生年→十二支判定 + djb2シードスコア | はい |
+| 九星気学 | 生年→九星判定 + djb2シードスコア | はい |
+| 動物占い | 生年月日→60パターン動物キャラ判定 + djb2シードスコア | はい |
+| 誕生花占い | 生年月日→365日誕生花データ + djb2シードスコア | はい |
+| 誕生石占い | 生月→12月誕生石データ + djb2シードスコア | はい |
+| 曜日占い | 生年月日→ツェラーの合同式で曜日算出 + djb2シードスコア | はい |
+| 風水占い | 生年+性別→本命卦(Gua)算出 + djb2シードスコア | はい |
+| 四柱推命 | 生年月日→天干地支 + ユリウス日算出 + djb2シードスコア | はい |
+| おみくじ | 重み付きランダム(大吉〜凶7段階) + djb2シード | はい |
+| ルーン占い | 24ルーンから3石選択 + 正逆判定 + djb2シード | はい |
+| 夢占い | キーワード完全一致/部分一致検索 + djb2シードスコア | いいえ（キーワード依存） |
+| 手相占い | Claude Vision API による画像解析 | いいえ（毎回異なる） |
 
 ## 画面フロー
 
@@ -284,17 +376,30 @@ cd backend && npm run build
   │                              ▼
   └── プロフィール登録済み ──→ 占術選択 (/fortune)
                                  │
-                    ┌────┬───────┼───────┬────┬──────────────┐
-                    ▼    ▼       ▼       ▼    │              ▼
-                  星座  数秘術  血液型  タロット│   ダッシュボード
-                    │    │       │       │    │  (/fortune/dashboard)
-                    │   [SNSシェア + 他占術ショートカット]   │
-                    │    │       │       │    │              │
-                    └──→ 履歴に自動保存 ←──┘    │              │
-                              │               │              │
-                         履歴 (/history)       │              │
-                                              │              │
-                        ← 戻る ───────────────┴──────────────┘
+               fortune-registry.ts でカテゴリ別表示
+                                 │
+         ┌──── 定番占い ─────────┼──── 誕生日占い ──────────────────┐
+         │                      │                                  │
+         ▼                      ▼                                  ▼
+  ┌────────────┐   ┌──────────────────────────────┐   ┌────────────────┐
+  │ Star 星座  │   │ Dog    干支                   │   │ Dice5 おみくじ │
+  │ Hash 数秘術│   │ Compass九星気学               │   │ Shield ルーン  │
+  │ Droplet血液│   │ Cat    動物占い               │   ├────────────────┤
+  │ Layers タロ│   │ Flower2誕生花                 │   │ 伝統占い (2)   │
+  ├────────────┤   │ Gem    誕生石                 │   └────────────────┘
+  │ 定番 (4)   │   │ Scroll 四柱推命              │
+  └────────────┘   │ Calendar曜日                  │   ┌────────────────┐
+                   │ Shrub  風水                   │   │ Eye   夢占い   │
+  ダッシュボード    │                               │   │ Hand  手相占い │
+  (/fortune/       ├──────────────────────────────┤   ├────────────────┤
+   dashboard)      │ 誕生日占い (8)                │   │ 特殊占い (2)   │
+  定番4占術一括     └──────────────────────────────┘   └────────────────┘
+         │
+         ▼
+  [SNSシェア + 他占術ショートカット (15占術)]
+         │
+         ▼
+  履歴に自動保存 → 履歴 (/history)
 ```
 
 ## デザインシステム
@@ -394,10 +499,10 @@ terraform apply \
 
 #### 4. CI/CD (GitHub Actions)
 
-`main` ブランチへの push で自動デプロイされます。
+`master` ブランチへの push で自動デプロイされます。
 
 必要な設定:
-- **GitHub Secret**: `AWS_ACCOUNT_ID`
+- **GitHub Secret**: `AWS_ACCOUNT_ID`, `ANTHROPIC_API_KEY`
 - **AWS**: IAM OIDC Provider + `fortune-compass-github-actions` ロール
 
 ### 推定コスト（月額）

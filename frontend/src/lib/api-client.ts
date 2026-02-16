@@ -5,6 +5,18 @@ import {
   BloodTypeResult,
   TarotResult,
   DashboardResult,
+  EtoResult,
+  BirthFlowerResult,
+  BirthstoneResult,
+  WeekdayResult,
+  KyuseiResult,
+  AnimalResult,
+  ShichuuResult,
+  OmikujiResult,
+  RuneResult,
+  FengshuiResult,
+  DreamResult,
+  PalmResult,
 } from "./types";
 
 async function postFortune<T>(
@@ -67,5 +79,113 @@ export async function fetchDashboardFortune(
     birthday: profile.birthday,
     name: profile.nameRomaji,
     bloodType: profile.bloodType,
+  });
+}
+
+export async function fetchEtoFortune(
+  profile: UserProfile
+): Promise<EtoResult> {
+  return postFortune<EtoResult>("eto", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchBirthFlowerFortune(
+  profile: UserProfile
+): Promise<BirthFlowerResult> {
+  return postFortune<BirthFlowerResult>("birth-flower", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchBirthstoneFortune(
+  profile: UserProfile
+): Promise<BirthstoneResult> {
+  return postFortune<BirthstoneResult>("birthstone", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchWeekdayFortune(
+  profile: UserProfile
+): Promise<WeekdayResult> {
+  return postFortune<WeekdayResult>("weekday", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchKyuseiFortune(
+  profile: UserProfile
+): Promise<KyuseiResult> {
+  return postFortune<KyuseiResult>("kyusei", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchAnimalFortune(
+  profile: UserProfile
+): Promise<AnimalResult> {
+  return postFortune<AnimalResult>("animal", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchShichuuFortune(
+  profile: UserProfile
+): Promise<ShichuuResult> {
+  return postFortune<ShichuuResult>("shichuu", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchOmikujiFortune(
+  profile: UserProfile
+): Promise<OmikujiResult> {
+  return postFortune<OmikujiResult>("omikuji", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchRuneFortune(
+  profile: UserProfile
+): Promise<RuneResult> {
+  return postFortune<RuneResult>("rune", {
+    birthday: profile.birthday,
+    name: profile.name,
+  });
+}
+
+export async function fetchFengshuiFortune(
+  profile: UserProfile,
+  gender?: "male" | "female"
+): Promise<FengshuiResult> {
+  return postFortune<FengshuiResult>("fengshui", {
+    birthday: profile.birthday,
+    name: profile.name,
+    gender: gender || "male",
+  });
+}
+
+export async function fetchDreamFortune(
+  keyword: string
+): Promise<DreamResult> {
+  return postFortune<DreamResult>("dream", {
+    keyword,
+  });
+}
+
+export async function fetchPalmFortune(
+  image: string
+): Promise<PalmResult> {
+  return postFortune<PalmResult>("palm", {
+    image,
   });
 }
