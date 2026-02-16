@@ -68,9 +68,12 @@
 | UI ライブラリ | React | 19.2.3 |
 | スタイリング | Tailwind CSS | 4.x |
 | アイコン | Lucide React | 0.564.x |
+| アニメーション | Framer Motion | 12.x |
 | バックエンド | Express | 5.2.x |
 | 言語 | TypeScript | 5.x |
-| テスト | Jest + Supertest | 30.x |
+| テスト (Backend) | Jest + Supertest | 30.x |
+| テスト (Frontend) | Jest + React Testing Library | 30.x / 16.x |
+| E2E テスト | Playwright | 1.58.x |
 | モノレポ管理 | concurrently | 9.x |
 | インフラ | Terraform | >= 1.5 |
 | コンテナ | Docker + ECS Fargate | - |
@@ -125,11 +128,26 @@ fortune-compass/
 │       └── routes/
 │
 └── frontend/                 # Next.js アプリ
+    ├── __tests__/               # ユニットテスト (31ケース)
+    │   ├── components/          #   コンポーネントテスト
+    │   └── lib/                 #   ライブラリテスト
+    ├── e2e/                     # E2Eテスト (25ケース, Playwright)
+    │   ├── home.spec.ts
+    │   ├── profile.spec.ts
+    │   ├── fortune.spec.ts
+    │   └── navigation.spec.ts
+    ├── public/
+    │   ├── favicon.svg          # ファビコン
+    │   ├── manifest.json        # PWA マニフェスト
+    │   └── icon-*.svg           # PWA アイコン
     └── src/
         ├── app/
-        │   ├── layout.tsx        # ルートレイアウト
+        │   ├── layout.tsx        # ルートレイアウト (OGP, PWA)
         │   ├── page.tsx          # トップページ
+        │   ├── not-found.tsx     # カスタム404ページ
+        │   ├── opengraph-image.tsx # 動的OG画像生成
         │   ├── globals.css       # デザインシステム定義
+        │   ├── health/           # ヘルスチェック
         │   ├── profile/
         │   │   └── page.tsx      # プロフィール入力
         │   └── fortune/
@@ -140,6 +158,11 @@ fortune-compass/
         │       └── tarot/        # タロット占い結果
         ├── components/
         │   ├── Header.tsx
+        │   ├── LanguageSwitcher.tsx # 言語切替 (ja/en)
+        │   ├── motion/           # アニメーション
+        │   │   ├── PageTransition.tsx
+        │   │   ├── StaggerChildren.tsx
+        │   │   └── CardReveal.tsx
         │   └── fortune/          # 占い用共通コンポーネント
         │       ├── FortuneCard.tsx
         │       ├── ScoreDisplay.tsx
@@ -150,7 +173,11 @@ fortune-compass/
             ├── types.ts          # 型定義
             ├── storage.ts        # localStorage管理
             ├── api-client.ts     # API呼び出し
-            └── kana-to-romaji.ts # カタカナ→ローマ字変換
+            ├── useFortune.ts     # 占い共通フック
+            ├── kana-to-romaji.ts # カタカナ→ローマ字変換
+            └── i18n/             # 多言語対応
+                ├── dictionaries.ts # 辞書 (ja/en)
+                └── context.tsx     # I18nProvider
 ```
 
 ## セットアップ
@@ -177,8 +204,14 @@ npm run dev
 ### テスト実行
 
 ```bash
-cd backend
-npm test
+# バックエンドテスト (75ケース)
+cd backend && npm test
+
+# フロントエンド ユニットテスト (31ケース)
+cd frontend && npm test
+
+# フロントエンド E2Eテスト (25ケース, 要Playwright)
+cd frontend && npm run test:e2e
 ```
 
 ### ビルド
@@ -190,6 +223,19 @@ cd frontend && npm run build
 # バックエンド
 cd backend && npm run build
 ```
+
+## 機能一覧
+
+| 機能 | 説明 |
+|-----|------|
+| 4占術 | 星座占い・数秘術・血液型占い・タロット |
+| PWA | ホーム画面追加対応 (manifest.json) |
+| OGP / SNS Card | Open Graph + Twitter Card メタデータ |
+| 多言語対応 (i18n) | 日本語 / English 切替 |
+| アニメーション | Framer Motion (ページ遷移・カード表示) |
+| アクセシビリティ | ARIA属性・スキップナビ・フォーカスリング・セマンティックHTML |
+| カスタム404 | 独自エラーページ |
+| ヘルスチェック | `/health` (Frontend), `/api/health` (Backend) |
 
 ## API エンドポイント
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Sparkles, RotateCcw } from "lucide-react";
+import { motion } from "framer-motion";
 import { TarotResult } from "@/lib/types";
 import { fetchTarotFortune } from "@/lib/api-client";
 import { useFortune } from "@/lib/useFortune";
@@ -28,7 +29,11 @@ export default function TarotPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <Link
         href="/fortune"
         className="inline-flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors duration-200 mb-8"
@@ -46,11 +51,18 @@ export default function TarotPage() {
         </p>
       </div>
 
-      {/* Tarot Cards */}
+      {/* Tarot Cards with reveal animation */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {result.cards.map((card, index) => (
-          <article
+          <motion.article
             key={index}
+            initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+            transition={{
+              duration: 0.6,
+              delay: index * 0.2,
+              ease: [0.22, 1, 0.36, 1],
+            }}
             className="bg-deep-purple rounded-xl p-5 border border-mystic-purple/20 text-center"
           >
             <p className="text-xs text-text-muted uppercase tracking-wider mb-3">
@@ -73,28 +85,41 @@ export default function TarotPage() {
                 逆位置
               </span>
             )}
-          </article>
+          </motion.article>
         ))}
       </div>
 
       {/* Card details */}
       <div className="space-y-4">
         {result.cards.map((card, index) => (
-          <ResultCard key={index} title={`${card.positionLabel} - ${card.name}`}>
-            <p className="text-text-secondary leading-relaxed">
-              {card.isReversed ? card.reversedMeaning : card.meaning}
-            </p>
-          </ResultCard>
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
+          >
+            <ResultCard title={`${card.positionLabel} - ${card.name}`}>
+              <p className="text-text-secondary leading-relaxed">
+                {card.isReversed ? card.reversedMeaning : card.meaning}
+              </p>
+            </ResultCard>
+          </motion.div>
         ))}
 
-        <ResultCard title="総合メッセージ">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-text-secondary leading-relaxed">
-              {result.overallMessage}
-            </p>
-          </div>
-        </ResultCard>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 1.0 }}
+        >
+          <ResultCard title="総合メッセージ">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-celestial-gold flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-text-secondary leading-relaxed">
+                {result.overallMessage}
+              </p>
+            </div>
+          </ResultCard>
+        </motion.div>
       </div>
 
       {/* Navigation */}
@@ -113,6 +138,6 @@ export default function TarotPage() {
           他の占いを試す
         </Link>
       </div>
-    </div>
+    </motion.div>
   );
 }

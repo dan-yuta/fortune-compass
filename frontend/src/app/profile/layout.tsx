@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "プロフィール設定 - Fortune Compass",
+  title: "プロフィール設定",
   description: "占いに必要なプロフィール情報を入力してください。",
 };
 
