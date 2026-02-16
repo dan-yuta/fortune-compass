@@ -243,6 +243,41 @@ Phase 9 で追加された12占術のテストカバレッジ状況。テスト�
 
 ---
 
+## 5.7 Management Console テスト（Phase 11）
+
+EC2 ライフサイクル管理コンソール（Lambda + Step Functions + API Gateway + S3）のテストは、インフラレベルの統合テストとして手動で実施。
+
+### TC-MGMT001: API Gateway エンドポイント
+
+| テストID | アクション | 検証内容 | 期待結果 |
+|---------|-----------|---------|---------|
+| TC-MGMT001-01 | POST /manage `{"action":"status"}` | EC2 ステータス取得 | `{"instanceId":"...","state":"running","publicIp":"..."}` |
+| TC-MGMT001-02 | POST /manage `{"action":"check_health"}` | ヘルスチェック | `{"healthy":true,"status":{"status":"ok"}}` |
+| TC-MGMT001-03 | POST /manage `{"action":"stop"}` | EC2 停止 | `{"state":"stopping","message":"Stop command sent"}` |
+| TC-MGMT001-04 | POST /manage `{"action":"start"}` | EC2 起動 | `{"state":"pending","message":"Start command sent"}` |
+| TC-MGMT001-05 | POST /manage (API Key なし) | 認証エラー | 403 Forbidden |
+
+### TC-MGMT002: EC2 ライフサイクル統合テスト
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-MGMT002-01 | 停止 → 状態確認 → stopped | ~110秒で stopped に遷移 |
+| TC-MGMT002-02 | 起動 → ヘルスチェック → healthy | ~30秒で running + healthy |
+| TC-MGMT002-03 | 起動後 CloudFront アクセス | 200 OK |
+| TC-MGMT002-04 | 起動後 占い API 正常動作 | 動物占い結果取得成功 |
+
+### TC-MGMT003: S3 管理コンソール UI
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-MGMT003-01 | コンソール URL アクセス | 200 OK（HTML ページ表示） |
+| TC-MGMT003-02 | ステータス表示 | EC2 状態・IP・インスタンス ID 表示 |
+| TC-MGMT003-03 | 起動/停止ボタン | 確認ダイアログ後に実行 |
+
+> **Note**: Management Console のテストはインフラ統合テスト（手動）として実施。Lambda 関数のユニットテストは今後のフェーズで追加予定。
+
+---
+
 ## 6. APIテスト（supertest）
 
 ### TC-API001: 星座占いエンドポイント

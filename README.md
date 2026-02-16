@@ -466,10 +466,11 @@ cd backend && npm run build
 └──────────────────────────────────────────────┘
 ```
 
-CloudFront → EC2 (k3s) の2層構成:
+CloudFront → EC2 (k3s) の2層構成（**5モジュール / 43リソース**）:
 - CloudFront が HTTPS 終端と静的アセットキャッシュ
 - k3s の Traefik Ingress がパスベースルーティング: `/api/*` → Backend, `/*` → Frontend
 - EC2 (t3.small) が Public Subnet 上で k3s クラスタを実行
+- Management Console（Lambda + Step Functions + API Gateway + S3）で EC2 ライフサイクルを管理
 
 ### デプロイ手順
 

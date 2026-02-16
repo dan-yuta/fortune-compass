@@ -42,6 +42,7 @@
 - Framer Motion アニメーション（ページ遷移、カード表示）
 - Docker 化 + AWS EC2 + k3s デプロイ
 - GitHub Actions CI/CD
+- EC2 ライフサイクル管理コンソール（Lambda + Step Functions + API Gateway + S3）
 
 ### 未実装（将来対応）
 - AI総合診断（Claude API連携）
@@ -63,6 +64,7 @@
 | テスト (Frontend) | Jest + React Testing Library | 30.x / 16.x |
 | E2E テスト | Playwright (Chromium) | 1.58.x |
 | インフラ | Terraform + AWS EC2 + k3s | >= 1.5 |
+| サーバーレス | AWS Lambda (Python 3.12) + Step Functions + API Gateway | EC2 管理 |
 | CI/CD | GitHub Actions (OIDC → ECR → SSH + kubectl) | - |
 | 開発実行 | `npm run dev`（concurrentlyで同時起動） | - |
 
