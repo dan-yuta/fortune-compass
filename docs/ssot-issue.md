@@ -13,8 +13,11 @@
 | バージョン | v1.0（MVP） |
 | 目的 | 4占術（星座・数秘術・血液型・タロット）を提供する総合占いWebアプリ |
 | 想定作業時間 | 2〜3時間 |
-| 実行環境 | ローカル環境（localhost） |
-| 技術スタック | Next.js 15.x + Express + TypeScript + Tailwind CSS + shadcn/ui |
+| 実行環境 | AWS ECS Fargate（CloudFront + ALB 経由） |
+| 技術スタック | Next.js 16.x + Express 5.x + TypeScript + Tailwind CSS v4 |
+| インフラ | AWS (CloudFront / ALB / ECS Fargate / ECR / VPC) |
+| IaC | Terraform |
+| CI/CD | GitHub Actions |
 
 ---
 
@@ -27,6 +30,8 @@
 | 3 | UI設計方針 | [`docs/ui-design.md`](./ui-design.md) | 画面別ワイヤーフレーム・遷移フロー・状態設計 |
 | 4 | テスト設計書 | [`docs/test-design.md`](./test-design.md) | 単体テスト・APIテスト・手動テストケース |
 | 5 | UXレビュー | [`docs/ux-review.md`](./ux-review.md) | UX観点のレビュー・改善提案 |
+| 6 | インフラ設計書 | [`docs/infra-design.md`](./infra-design.md) | AWS インフラ設計・アーキテクチャ・コスト |
+| 7 | AWS サービス一覧 | [`docs/aws-services.md`](./aws-services.md) | 使用 AWS サービスの解説 |
 
 ---
 
@@ -35,58 +40,69 @@
 ### M1: プロジェクト初期セットアップ
 | タスク | 状態 | 備考 |
 |--------|------|------|
-| モノレポ構成（ルート package.json + concurrently） | ⬜ 未着手 | |
-| Next.js フロントエンド初期化 | ⬜ 未着手 | App Router, TypeScript |
-| Express バックエンド初期化 | ⬜ 未着手 | TypeScript, ts-node-dev |
-| Tailwind CSS + shadcn/ui セットアップ | ⬜ 未着手 | |
-| デザインシステムの Tailwind 設定反映 | ⬜ 未着手 | カスタムカラー・フォント・アニメーション |
-| `npm run dev` で同時起動確認 | ⬜ 未着手 | frontend:3000 / backend:8080 |
+| モノレポ構成（ルート package.json + concurrently） | ✅ 完了 | |
+| Next.js フロントエンド初期化 | ✅ 完了 | App Router, TypeScript |
+| Express バックエンド初期化 | ✅ 完了 | TypeScript, ts-node-dev |
+| Tailwind CSS セットアップ | ✅ 完了 | v4（@theme in CSS） |
+| デザインシステムの Tailwind 設定反映 | ✅ 完了 | カスタムカラー・フォント・アニメーション |
+| `npm run dev` で同時起動確認 | ✅ 完了 | frontend:3000 / backend:8080 |
 
 ### M2: バックエンド — 占いロジック + API
 | タスク | 状態 | 備考 |
 |--------|------|------|
-| 星座判定ロジック（zodiac.ts） | ⬜ 未着手 | 12星座境界値、エレメント、日替わりスコア |
-| 数秘術ロジック（numerology.ts） | ⬜ 未着手 | 運命数算出、マスターナンバー、ピタゴリアン変換 |
-| 血液型占いロジック（blood-type.ts） | ⬜ 未着手 | 固定データ + 日替わりスコア |
-| タロット占いロジック（tarot.ts） | ⬜ 未着手 | 大アルカナ22枚データ、3枚抽出、正逆判定 |
-| 占いマスターデータ作成（data/） | ⬜ 未着手 | zodiac-data, tarot-cards, blood-type-data |
-| Express ルーティング（routes/fortune.ts） | ⬜ 未着手 | 4エンドポイント + バリデーション |
-| CORS設定 | ⬜ 未着手 | localhost:3000 を許可 |
+| 星座判定ロジック（zodiac.ts） | ✅ 完了 | 12星座境界値、エレメント、日替わりスコア |
+| 数秘術ロジック（numerology.ts） | ✅ 完了 | 運命数算出、マスターナンバー、ピタゴリアン変換 |
+| 血液型占いロジック（blood-type.ts） | ✅ 完了 | 固定データ + 日替わりスコア |
+| タロット占いロジック（tarot.ts） | ✅ 完了 | 大アルカナ22枚データ、3枚抽出、正逆判定 |
+| 占いマスターデータ作成（data/） | ✅ 完了 | zodiac-data, tarot-cards, blood-type-data |
+| Express ルーティング（routes/fortune.ts） | ✅ 完了 | 4エンドポイント + バリデーション |
+| CORS設定 | ✅ 完了 | 環境変数 CORS_ORIGIN 対応 |
 
 ### M3: バックエンド — テスト
 | タスク | 状態 | 備考 |
 |--------|------|------|
-| Jest + ts-jest + supertest セットアップ | ⬜ 未着手 | |
-| 星座占い単体テスト | ⬜ 未着手 | TC-Z001〜Z004 |
-| 数秘術単体テスト | ⬜ 未着手 | TC-N001〜N004 |
-| 血液型占い単体テスト | ⬜ 未着手 | TC-B001〜B002 |
-| タロット占い単体テスト | ⬜ 未着手 | TC-T001〜T004 |
-| APIエンドポイントテスト | ⬜ 未着手 | TC-API001〜API004 |
+| Jest + ts-jest + supertest セットアップ | ✅ 完了 | |
+| 星座占い単体テスト | ✅ 完了 | TC-Z001〜Z004 |
+| 数秘術単体テスト | ✅ 完了 | TC-N001〜N004 |
+| 血液型占い単体テスト | ✅ 完了 | TC-B001〜B002 |
+| タロット占い単体テスト | ✅ 完了 | TC-T001〜T004 |
+| APIエンドポイントテスト | ✅ 完了 | TC-API001〜API004 |
 
 ### M4: フロントエンド — 画面実装
 | タスク | 状態 | 備考 |
 |--------|------|------|
-| 共通レイアウト（layout.tsx） | ⬜ 未着手 | ヘッダー、背景、フォント |
-| トップページ（/） | ⬜ 未着手 | ヒーロー、CTA、占術アイコン |
-| プロフィール入力（/profile） | ⬜ 未着手 | フォーム、バリデーション、localStorage保存 |
-| 占術選択（/fortune） | ⬜ 未着手 | ユーザーサマリ、4占術カード |
-| 星座占い結果（/fortune/zodiac） | ⬜ 未着手 | API呼び出し、結果表示 |
-| 数秘術結果（/fortune/numerology） | ⬜ 未着手 | |
-| 血液型占い結果（/fortune/blood-type） | ⬜ 未着手 | |
-| タロット結果（/fortune/tarot） | ⬜ 未着手 | 3枚カード横並び + 詳細 |
-| localStorage ユーティリティ（storage.ts） | ⬜ 未着手 | |
-| APIクライアント（api-client.ts） | ⬜ 未着手 | |
-| ローディング / エラー状態 | ⬜ 未着手 | |
+| 共通レイアウト（layout.tsx） | ✅ 完了 | ヘッダー、背景、フォント |
+| トップページ（/） | ✅ 完了 | ヒーロー、CTA、占術アイコン |
+| プロフィール入力（/profile） | ✅ 完了 | フォーム、バリデーション、localStorage保存 |
+| 占術選択（/fortune） | ✅ 完了 | ユーザーサマリ、4占術カード |
+| 星座占い結果（/fortune/zodiac） | ✅ 完了 | API呼び出し、結果表示 |
+| 数秘術結果（/fortune/numerology） | ✅ 完了 | |
+| 血液型占い結果（/fortune/blood-type） | ✅ 完了 | |
+| タロット結果（/fortune/tarot） | ✅ 完了 | 3枚カード横並び + 詳細 |
+| localStorage ユーティリティ（storage.ts） | ✅ 完了 | |
+| APIクライアント（api-client.ts） | ✅ 完了 | |
+| ローディング / エラー状態 | ✅ 完了 | |
 
 ### M5: 結合 + 動作確認
 | タスク | 状態 | 備考 |
 |--------|------|------|
-| フロント ↔ バックエンド結合テスト | ⬜ 未着手 | |
-| 全画面遷移フローの手動確認 | ⬜ 未着手 | TC-FE001 |
-| プロフィール入力の手動確認 | ⬜ 未着手 | TC-FE002 |
-| 各占い結果表示の手動確認 | ⬜ 未着手 | TC-FE003 |
-| レスポンシブ確認 | ⬜ 未着手 | TC-FE004 |
-| 最終微調整 | ⬜ 未着手 | |
+| フロント ↔ バックエンド結合テスト | ✅ 完了 | |
+| 全画面遷移フローの手動確認 | ✅ 完了 | TC-FE001 |
+| プロフィール入力の手動確認 | ✅ 完了 | TC-FE002 |
+| 各占い結果表示の手動確認 | ✅ 完了 | TC-FE003 |
+| レスポンシブ確認 | ✅ 完了 | TC-FE004（Tailwind レスポンシブ対応済み） |
+| 最終微調整 | ✅ 完了 | ESLint クリーン |
+
+### M6: AWS デプロイ
+| タスク | 状態 | 備考 |
+|--------|------|------|
+| Dockerfile 作成（frontend / backend） | ✅ 完了 | Multi-stage build |
+| ヘルスチェックエンドポイント追加 | ✅ 完了 | /health, /api/health |
+| Terraform モジュール作成（5モジュール） | ✅ 完了 | networking, ecr, alb, ecs, cloudfront |
+| ECR リポジトリ作成 + イメージ push | ✅ 完了 | frontend / backend |
+| ECS Fargate デプロイ | ✅ 完了 | 2サービス稼働中 |
+| CloudFront 配置 (HTTPS) | ✅ 完了 | d71oywvumn06c.cloudfront.net |
+| GitHub Actions CI/CD 設定 | ✅ 完了 | deploy.yml |
 
 ---
 
@@ -149,7 +165,7 @@ M5 結合 + 動作確認（20分）
 - 今日の運勢バッチ処理
 - 履歴・お気に入り・SNSシェア
 - ユーザー認証
-- DynamoDB / Docker / AWS デプロイ
+- カスタムドメイン（Route 53 + ACM）
 - E2Eテスト（Playwright等）
 - 多言語対応
 - PWA対応
@@ -161,3 +177,6 @@ M5 結合 + 動作確認（20分）
 | 日付 | 更新内容 |
 |------|---------|
 | 2026-02-16 | 初版作成。MVP全タスク定義 |
+| 2026-02-16 | M1〜M5 全タスク完了。テスト75件パス、ESLint クリーン |
+| 2026-02-16 | M6 追加。AWS デプロイ完了（ECS Fargate + CloudFront） |
+| 2026-02-16 | 技術スタック・関連ドキュメント・スコープ外を最新化 |

@@ -85,7 +85,9 @@ fortune-compass/
 │   ├── ui-design.md          #   UI設計
 │   ├── test-design.md        #   テスト設計
 │   ├── ssot-issue.md         #   SSOTイシュー
-│   └── ux-review.md          #   UXレビュー
+│   ├── ux-review.md          #   UXレビュー
+│   ├── infra-design.md       #   インフラ設計書
+│   └── aws-services.md       #   AWS サービス一覧・解説
 │
 ├── .github/workflows/        # CI/CD
 │   └── deploy.yml            #   GitHub Actions デプロイ
@@ -95,7 +97,8 @@ fortune-compass/
 │   │   ├── networking/       #   VPC, Subnets, NAT GW
 │   │   ├── ecr/              #   ECR リポジトリ
 │   │   ├── alb/              #   ALB, Target Groups
-│   │   └── ecs/              #   ECS Cluster, Services
+│   │   ├── ecs/              #   ECS Cluster, Services
+│   │   └── cloudfront/       #   CloudFront CDN
 │   └── environments/
 │       └── dev/              #   開発環境設定
 │
@@ -249,6 +252,11 @@ cd backend && npm run build
                     └──────┬──────┘
                            │
                     ┌──────▼──────┐
+                    │ CloudFront  │  ← HTTPS 終端 + 静的アセットキャッシュ
+                    │   (CDN)     │
+                    └──────┬──────┘
+                           │ HTTP (origin)
+                    ┌──────▼──────┐
                     │     ALB     │  ← Public Subnets (2 AZs)
                     │   (port 80) │
                     └──┬───────┬──┘
@@ -270,9 +278,10 @@ cd backend && npm run build
                └─────────────┘
 ```
 
-ALB がパスベースでルーティング:
-- `/api/*` → Backend Target Group (Express :8080)
-- `/*` (デフォルト) → Frontend Target Group (Next.js :3000)
+CloudFront → ALB → ECS の3層構成:
+- CloudFront が HTTPS を終端し、静的アセットをキャッシュ
+- ALB がパスベースでルーティング: `/api/*` → Backend, `/*` → Frontend
+- ECS Fargate が Private Subnet 上でコンテナを実行
 
 ### デプロイ手順
 
@@ -323,5 +332,6 @@ terraform apply \
 | Fargate (2タスク) | ~$15 |
 | ALB | ~$18 |
 | NAT Gateway | ~$32 |
+| CloudFront | ~$0（無料枠内） |
 | その他 (ECR, CloudWatch, S3) | ~$3 |
 | **合計** | **~$68/月** |

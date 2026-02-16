@@ -42,5 +42,15 @@ module "ecs" {
   backend_target_group_arn  = module.alb.backend_target_group_arn
   frontend_image            = var.frontend_image
   backend_image             = var.backend_image
-  cors_origin               = "http://${module.alb.alb_dns_name}"
+  cors_origin               = "https://${module.cloudfront.distribution_domain_name}"
+}
+
+# --- CloudFront ---
+
+module "cloudfront" {
+  source = "../../modules/cloudfront"
+
+  project_name = var.project_name
+  environment  = var.environment
+  alb_dns_name = module.alb.alb_dns_name
 }

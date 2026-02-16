@@ -5,7 +5,12 @@ output "alb_dns_name" {
 
 output "app_url" {
   description = "Application URL"
-  value       = "http://${module.alb.alb_dns_name}"
+  value       = module.cloudfront.distribution_url
+}
+
+output "cloudfront_domain" {
+  description = "CloudFront domain name"
+  value       = module.cloudfront.distribution_domain_name
 }
 
 output "ecr_frontend_url" {
