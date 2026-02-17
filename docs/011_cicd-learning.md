@@ -8,6 +8,7 @@
 
 ## 目次
 
+0. [前提条件（はじめに確認すること）](#0-前提条件はじめに確認すること)
 1. [CI/CD とは何か（中学生にもわかる説明）](#1-cicd-とは何か中学生にもわかる説明)
 2. [Fortune Compass の CI/CD パイプライン全体像](#2-fortune-compass-の-cicd-パイプライン全体像)
 3. [GitHub Actions の仕組み（ワークフローファイル解説）](#3-github-actions-の仕組みワークフローファイル解説)
@@ -15,8 +16,77 @@
 5. [Job 2: ビルド＆デプロイ（Docker → ECR → k3s）](#5-job-2-ビルドデプロイdocker--ecr--k3s)
 6. [OIDC 認証の仕組み（なぜパスワードを保存しないのか）](#6-oidc-認証の仕組みなぜパスワードを保存しないのか)
 7. [実際に確認してみよう（コマンド集）](#7-実際に確認してみようコマンド集)
-8. [よくあるエラーと対処法](#8-よくあるエラーと対処法)
-9. [用語集](#9-用語集)
+8. [CI/CD を実際に動かしてみよう（ハンズオン）](#8-cicd-を実際に動かしてみようハンズオン)
+9. [よくあるエラーと対処法](#9-よくあるエラーと対処法)
+10. [用語集](#10-用語集)
+
+---
+
+## 0. 前提条件（はじめに確認すること）
+
+このガイドを進めるために、以下のツールがインストールされている必要があります。
+ターミナル（コマンドプロンプト）を開いて、それぞれのコマンドを実行してバージョンが表示されれば OK です。
+
+### 必要なツール一覧
+
+| ツール | 確認コマンド | 用途 |
+|--------|-------------|------|
+| **Git** | `git --version` | コードのバージョン管理（push でパイプラインが動く） |
+| **GitHub CLI（gh）** | `gh --version` | GitHub Actions の実行状況確認 |
+| **AWS CLI** | `aws --version` | ECR のイメージ確認、EC2 接続 |
+| **Terraform** | `terraform --version` | SSH 秘密鍵の取得、EC2 の IP 確認 |
+| **SSH** | `ssh -V` | EC2 サーバーへの接続 |
+
+### インストールされていない場合
+
+```bash
+# Git（WSL/Ubuntu の場合）
+sudo apt update && sudo apt install -y git
+
+# GitHub CLI
+# https://cli.github.com/ からインストール
+# インストール後にログイン：
+gh auth login
+
+# AWS CLI
+# https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/getting-started-install.html
+# インストール後に設定：
+aws configure
+# → AWS Access Key ID、Secret Access Key、Region（ap-northeast-1）を入力
+
+# Terraform
+# https://developer.hashicorp.com/terraform/install
+
+# SSH（通常はプリインストール済み）
+```
+
+### AWS CLI の設定確認
+
+```bash
+# 現在の設定を確認（アカウント情報が表示されれば OK）
+aws sts get-caller-identity
+
+# 出力例:
+# {
+#     "UserId": "AIDA...",
+#     "Account": "123456789012",
+#     "Arn": "arn:aws:iam::123456789012:user/your-name"
+# }
+```
+
+> **エラーが出たら**: `aws configure` を実行して、アクセスキーとリージョン（`ap-northeast-1`）を設定してください。
+
+### GitHub CLI のログイン確認
+
+```bash
+# ログイン状態を確認
+gh auth status
+
+# 出力例:
+# ✓ Logged in to github.com as dan-yuta
+```
+
+> **エラーが出たら**: `gh auth login` を実行して、ブラウザ認証でログインしてください。
 
 ---
 
@@ -973,7 +1043,145 @@ sudo k3s kubectl rollout history deployment/backend -n fortune-compass
 
 ---
 
-## 8. よくあるエラーと対処法
+## 8. CI/CD を実際に動かしてみよう（ハンズオン）
+
+ここまでの解説を読んだら、実際に CI/CD パイプラインを動かしてみましょう。
+コードを少しだけ変更して push すると、自動テスト → 自動デプロイが実行される様子を体験できます。
+
+### 8.1 方法 A: コードを変更して push する（推奨）
+
+実際の開発と同じ流れを体験する方法です。
+
+#### Step 1: コードに小さな変更を加える
+
+```bash
+# fortune-compass のリポジトリに移動
+cd /home/dangi/work/my-project/fortune-compass
+```
+
+バックエンドの health エンドポイントにバージョン情報を追加してみましょう。
+
+```bash
+# 現在の health エンドポイントを確認
+cat backend/src/app.ts | grep -A 5 "health"
+```
+
+> **注意**: ここでは例として簡単な変更を示していますが、
+> 実際にはどんなコード変更でも OK です。README の誤字修正でも動作します。
+
+#### Step 2: 変更をコミットして push する
+
+```bash
+# 変更をステージング（どのファイルを送るか選ぶ）
+git add -A
+
+# コミット（変更を記録する）
+git commit -m "test: CI/CD パイプラインの動作確認"
+
+# push（GitHub に送信 → ここで CI/CD が自動起動！）
+git push origin master
+```
+
+> **push した瞬間**に GitHub Actions が動き始めます。次の Step でリアルタイムで見てみましょう。
+
+#### Step 3: パイプラインの実行をリアルタイムで見る
+
+```bash
+# push 直後に実行すると、今動いているワークフローが見られる
+gh run list --repo dan-yuta/fortune-compass --limit 3
+
+# 出力例:
+# STATUS  TITLE                          WORKFLOW        BRANCH  EVENT  ID          ELAPSED  AGE
+# *       test: CI/CD パイプラインの動作確認  Deploy to k3s   master  push   1234567890  0s       0s
+#                                       ↑ STATUS が * = 実行中！
+```
+
+```bash
+# 実行中の run の ID をコピーして、リアルタイムでログを見る
+gh run watch <run-ID> --repo dan-yuta/fortune-compass
+
+# ↑ テスト → ビルド → デプロイの進行状況がリアルタイムで表示されます
+# 完了すると自動で終了します（通常 3〜5 分）
+```
+
+#### Step 4: 結果を確認する
+
+```bash
+# ワークフローの結果を確認
+gh run view <run-ID> --repo dan-yuta/fortune-compass
+
+# 出力例（成功の場合）:
+# ✓ test-backend in 1m30s
+# ✓ build-and-deploy in 2m15s
+```
+
+```bash
+# デプロイされたアプリが正常に動いているか確認
+curl -s https://d71oywvumn06c.cloudfront.net/api/health
+
+# 出力例:
+# {"status":"ok"}
+```
+
+```bash
+# EC2 に SSH 接続して Pod の状態も確認
+ssh -i ~/.ssh/fortune-compass-k3s.pem ubuntu@13.192.182.54
+
+# ※ EC2 に SSH 接続した状態で実行
+sudo k3s kubectl get pods -n fortune-compass
+
+# 出力例:
+# NAME                        READY   STATUS    RESTARTS   AGE
+# backend-xxxxx-xxxxx         1/1     Running   0          2m    ← AGE が新しい = 再デプロイされた！
+# frontend-xxxxx-xxxxx        1/1     Running   0          2m
+```
+
+> **おめでとうございます！** コードを push しただけで、テスト → ビルド → デプロイが全自動で実行されました。
+> これが CI/CD の力です。
+
+### 8.2 方法 B: 手動でワークフローを実行する（コード変更なし）
+
+コードを変更せずに、パイプラインだけを動かしたい場合はこちら。
+
+```bash
+# 手動で Deploy to k3s ワークフローを実行
+gh workflow run deploy.yml --repo dan-yuta/fortune-compass
+
+# "✓ Created workflow_dispatch event" と表示されれば成功
+```
+
+```bash
+# 実行が開始されたか確認（数秒待ってから実行）
+gh run list --repo dan-yuta/fortune-compass --limit 1
+
+# 出力例:
+# STATUS  TITLE  WORKFLOW        BRANCH  EVENT              ID          ELAPSED  AGE
+# *              Deploy to k3s   master  workflow_dispatch  1234567891  10s      10s
+#                                        ↑ EVENT が workflow_dispatch = 手動実行
+```
+
+あとは方法 A の Step 3〜4 と同じ手順で進行状況と結果を確認できます。
+
+### 8.3 CI/CD 体験のまとめ
+
+```
+あなたがやったこと              → 自動で起こったこと
+──────────────────────────────────────────────────────────
+git push（コードを送る）         → GitHub Actions が起動
+                                → テスト自動実行（npm test）
+                                → Docker イメージのビルド
+                                → ECR にイメージを送信
+                                → EC2 に SSH 接続
+                                → k3s のデプロイを更新
+                                → 新しいアプリが公開！
+
+あなたの作業: push 1回（10秒）
+自動化された作業: 約10ステップ（3〜5分）
+```
+
+---
+
+## 9. よくあるエラーと対処法
 
 CI/CD でエラーが出ても慌てないでください。よくあるエラーには決まった対処法があります。
 
@@ -1138,7 +1346,7 @@ error: timed out waiting for the condition
 
 ---
 
-## 9. 用語集
+## 10. 用語集
 
 CI/CD に関連する用語をアイウエオ順・アルファベット順で解説します。
 

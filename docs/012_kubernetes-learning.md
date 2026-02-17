@@ -7,12 +7,62 @@
 
 ## 目次
 
+0. [前提条件（はじめに確認すること）](#前提条件はじめに確認すること)
 1. [Part 1: Kubernetes とは何か（基礎知識）](#part-1-kubernetes-とは何か基礎知識)
 2. [Part 2: Fortune Compass の構成を確認しよう](#part-2-fortune-compass-の構成を確認しよう)
 3. [Part 3: Kubernetes の機能を体験しよう](#part-3-kubernetes-の機能を体験しよう)
 4. [Part 4: 障害テスト（わざとエラーを起こしてみよう）](#part-4-障害テストわざとエラーを起こしてみよう)
 5. [Part 5: トラブルシューティングガイド](#part-5-トラブルシューティングガイド)
 6. [Part 6: 用語集](#part-6-用語集)
+
+---
+
+## 前提条件（はじめに確認すること）
+
+このガイドを進めるために、以下のツールがインストールされている必要があります。
+ターミナル（コマンドプロンプト）を開いて、それぞれのコマンドを実行してバージョンが表示されれば OK です。
+
+### 必要なツール一覧
+
+| ツール | 確認コマンド | 用途 |
+|--------|-------------|------|
+| **AWS CLI** | `aws --version` | EC2 接続、ECR イメージ確認 |
+| **Terraform** | `terraform --version` | SSH 秘密鍵の取得、EC2 の IP 確認 |
+| **SSH** | `ssh -V` | EC2 サーバーへの接続 |
+
+> **kubectl は不要です**: k3s には kubectl が内蔵されているため、EC2 に SSH 接続した後は
+> `sudo k3s kubectl ...` で Kubernetes の操作ができます。ローカルに kubectl をインストールする必要はありません。
+
+### インストールされていない場合
+
+```bash
+# AWS CLI
+# https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/getting-started-install.html
+# インストール後に設定：
+aws configure
+# → AWS Access Key ID、Secret Access Key、Region（ap-northeast-1）を入力
+
+# Terraform
+# https://developer.hashicorp.com/terraform/install
+
+# SSH（通常はプリインストール済み）
+```
+
+### AWS CLI の設定確認
+
+```bash
+# 現在の設定を確認（アカウント情報が表示されれば OK）
+aws sts get-caller-identity
+
+# 出力例:
+# {
+#     "UserId": "AIDA...",
+#     "Account": "123456789012",
+#     "Arn": "arn:aws:iam::123456789012:user/your-name"
+# }
+```
+
+> **エラーが出たら**: `aws configure` を実行して、アクセスキーとリージョン（`ap-northeast-1`）を設定してください。
 
 ---
 
