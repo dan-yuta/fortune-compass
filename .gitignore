@@ -13,3 +13,6 @@ coverage/
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+
+# Lambda deployment packages
+*.zip
