@@ -37,6 +37,7 @@
 | 10 | Phase 6: ドキュメント | システム全体解説 | [`010_system-overview.md`](./010_system-overview.md) | システム構成・技術詳細の総合解説 |
 | 11 | Phase 6: ドキュメント | CI/CD 学習ガイド | [`011_cicd-learning.md`](./011_cicd-learning.md) | CI/CD パイプラインの初心者向け解説 |
 | 12 | Phase 6: ドキュメント | Kubernetes 学習ガイド | [`012_kubernetes-learning.md`](./012_kubernetes-learning.md) | k3s / Kubernetes の学習 + 障害テスト手順 |
+| 13 | Phase 6: ドキュメント | 環境の削除と再作成ガイド | [`013_destroy-recreate-guide.md`](./013_destroy-recreate-guide.md) | terraform destroy/apply 手順・コスト削減運用 |
 
 ---
 
