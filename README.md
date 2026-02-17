@@ -2,7 +2,14 @@
 
 総合占いWebアプリケーション。16の占術を4カテゴリ（定番占い・誕生日占い・伝統占い・特殊占い）で提供し、毎日の運勢を占えます。
 
-**URL**: https://d71oywvumn06c.cloudfront.net
+## 関連リンク
+
+| リソース | URL |
+|---------|-----|
+| アプリ | https://d71oywvumn06c.cloudfront.net |
+| 管理コンソール | https://d71oywvumn06c.cloudfront.net/admin |
+| 管理 API | https://4s30b1da8k.execute-api.ap-northeast-1.amazonaws.com/prod/manage |
+| GitHub | https://github.com/dan-yuta/fortune-compass (private) |
 
 ## アーキテクチャ
 
@@ -281,6 +288,7 @@ EC2 を未使用時に停止し、コンピュートコストを削減するた�
 | S3 Static Website | 管理コンソール UI |
 
 **管理コンソール URL**: https://d71oywvumn06c.cloudfront.net/admin（CloudFront HTTPS 経由）
+
 **API エンドポイント**: https://4s30b1da8k.execute-api.ap-northeast-1.amazonaws.com/prod/manage
 
 EC2 停止時のコスト: ~$4/月（EBS + ECR + S3 のみ。EC2 コンピュート ~$9/月 を削減）
