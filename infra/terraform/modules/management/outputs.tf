@@ -28,3 +28,8 @@ output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.ec2_manager.function_name
 }
+
+output "console_website_endpoint" {
+  description = "S3 website endpoint for management console"
+  value       = aws_s3_bucket_website_configuration.console.website_endpoint
+}

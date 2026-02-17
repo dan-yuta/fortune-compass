@@ -1024,7 +1024,16 @@ CloudFront → ブラウザ
 | 12 | Step Functions | EC2 起動・停止ワークフロー | $0（無料枠内） |
 | 13 | API Gateway | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
 | 14 | S3（管理コンソール） | 管理コンソール静的ウェブサイト | $0（無料枠内） |
-| | **合計** | | **~$13/月**（EC2 停止時は ~$4/月） |
+| 15 | CloudFront Function | `/admin` パスリライト | $0 |
+| 16 | MediaConvert | 動画変換（MP4 + HLS） | 従量課金 |
+| 17 | Security Hub | セキュリティ統合ダッシュボード | ~$0〜5 |
+| 18 | GuardDuty | 脅威検出 | ~$0〜3 |
+| 19 | Inspector | 脆弱性スキャン（EC2 / ECR） | ~$0〜2 |
+| 20 | AWS Config | リソース設定記録 + コンプライアンスルール | ~$0〜2 |
+| 21 | IAM Access Analyzer | IAM 外部アクセス分析 | $0 |
+| 22 | Bedrock Agent | 対話型占い AI コンシェルジュ | 従量課金 |
+| 23 | EventBridge | MediaConvert ジョブ完了通知 | $0 |
+| | **合計** | | **~$19〜24/月**（EC2 停止時は ~$10〜15/月） |
 
 ### ネットワーク構成
 
@@ -1080,20 +1089,27 @@ infra/terraform/
 │   ├── ecs/             # Cluster, Task Def x2, Service x2,
 │   │                    # IAM Role x2, Log Group x2, SG (11リソース)
 │   │
-│   ├── cloudfront/      # CloudFront Distribution (1リソース)
+│   ├── cloudfront/      # CloudFront Distribution + CF Function (3リソース)
 │   │
-│   └── management/      # Lambda, Step Functions x2, API Gateway,
-│                        # S3, IAM Role/Policy 等 (28リソース)
+│   ├── management/      # Lambda, Step Functions x2, API Gateway,
+│   │                    # S3, IAM Role/Policy 等 (28リソース)
+│   │
+│   ├── mediaconvert/    # S3 x2, Lambda, IAM x2, EventBridge (12リソース)
+│   │
+│   ├── security/        # Security Hub, GuardDuty, Inspector,
+│   │                    # Config, Access Analyzer (13リソース)
+│   │
+│   └── bedrock/         # Bedrock Agent, Lambda, IAM x2 (9リソース)
 │
 └── environments/
     └── dev/             # モジュール結合 + 変数 + State設定
-        ├── main.tf      #   5モジュールの結合
+        ├── main.tf      #   9モジュールの結合
         ├── variables.tf #   変数定義
         ├── outputs.tf   #   出力定義（URL等）
         └── backend.tf   #   S3 State設定
 ```
 
-**合計: 43 リソース**（management モジュール 28 リソース追加）
+**合計: ~80 リソース**（Phase 12 で mediaconvert / security / bedrock モジュール追加）
 
 ### Management Console（EC2 ライフサイクル管理）
 
@@ -1111,7 +1127,16 @@ EC2 を未使用時に停止してコストを削減するための管理コン�
 | S3 Static Website | 管理コンソール UI |
 | SSM Agent (EC2) | リモートコマンド実行 |
 
-**管理コンソール URL**: http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com
+**管理コンソール URL**: https://d71oywvumn06c.cloudfront.net/admin（CloudFront HTTPS 経由）
+
+### Phase 12: 非コンピュート系 AWS サービス拡張
+
+| 機能 | サービス | 概要 |
+|------|---------|------|
+| CloudFront `/admin` | CloudFront Function | 管理コンソール HTTPS 配信 |
+| 動画変換 | MediaConvert + S3 + Lambda | S3 アップロード → MP4 + HLS 自動変換 |
+| セキュリティ監査 | Security Hub / GuardDuty / Inspector / Config / Access Analyzer | 既存インフラの監査 |
+| AI 占い | Bedrock Agent + Lambda | 自然言語で占い実行 |
 
 ---
 

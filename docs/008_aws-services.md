@@ -24,8 +24,17 @@
 | 14 | Amazon API Gateway | API | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
 | 15 | Amazon S3（管理コンソール） | ホスティング | 管理コンソール静的ウェブサイト | $0（無料枠内） |
 | 16 | AWS Systems Manager (SSM) | 管理 | EC2 へのリモートコマンド実行（ECR トークンリフレッシュ等） | $0 |
+| 17 | CloudFront Function | CDN | `/admin` パスリライト（管理コンソール HTTPS 配信） | $0 |
+| 18 | AWS MediaConvert | メディア | S3 アップロードトリガーで動画を MP4 + HLS に自動変換 | 従量課金 |
+| 19 | AWS Security Hub | セキュリティ | セキュリティ統合ダッシュボード + ベストプラクティス標準 | ~$0〜5 |
+| 20 | Amazon GuardDuty | セキュリティ | 脅威検出（不正アクセス・マルウェア） | ~$0〜3 |
+| 21 | Amazon Inspector | セキュリティ | EC2 / ECR 脆弱性スキャン | ~$0〜2 |
+| 22 | AWS Config | セキュリティ | リソース設定記録 + コンプライアンスルール | ~$0〜2 |
+| 23 | IAM Access Analyzer | セキュリティ | IAM ポリシーの外部アクセス分析 | $0 |
+| 24 | Amazon Bedrock Agent | AI | 対話型占い AI コンシェルジュ | 従量課金 |
+| 25 | Amazon EventBridge | イベント | MediaConvert ジョブ完了通知 → CloudWatch Logs | $0 |
 
-**合計: 約 $14/月**（管理コンソール関連サービスは全て無料枠内）
+**合計: 約 $19〜24/月**（セキュリティサービスは無料枠終了後課金、MediaConvert/Bedrock は従量課金）
 
 ---
 
@@ -247,6 +256,109 @@
 **本プロジェクトでの役割**:
 - Lambda から EC2 上の ECR 認証トークンリフレッシュコマンドを実行
 - EC2 に SSM Agent をインストールし、SSH 不要でのリモート管理を実現
+
+---
+
+### 2.17 CloudFront Function
+
+**概要**: CloudFront エッジロケーションで実行される軽量な JavaScript 関数。リクエスト/レスポンスの変換に使用。Lambda@Edge より高速・低コスト。
+
+**本プロジェクトでの役割**:
+- `/admin*` パスへのリクエストを `/index.html` にリライトし、管理コンソールを CloudFront 経由で HTTPS 配信
+- ランタイム: `cloudfront-js-2.0`
+
+---
+
+### 2.18 AWS MediaConvert
+
+**概要**: ファイルベースの動画変換サービス。H.264/H.265 等のコーデックで高品質なトランスコードを提供。
+
+**本プロジェクトでの構成**:
+- S3 に `.mp4` がアップロードされると Lambda がトリガーされ、MediaConvert ジョブを作成
+- 出力: MP4（H.264 720p QVBR）+ HLS（セグメント6秒）
+- EventBridge でジョブ完了/エラーを CloudWatch Logs に記録
+
+**コスト**: 従量課金。ベーシックティアで $0.024/分（SD）〜$0.048/分（HD）。
+
+---
+
+### 2.19 AWS Security Hub
+
+**概要**: AWS セキュリティサービスの統合ダッシュボード。GuardDuty、Inspector、Config 等の findings を一元管理。
+
+**本プロジェクトでの役割**:
+- AWS 基礎セキュリティのベストプラクティス標準（FSBP v1.0.0）を有効化
+- 既存インフラのセキュリティ posture を可視化
+
+---
+
+### 2.20 Amazon GuardDuty
+
+**概要**: 機械学習ベースの脅威検出サービス。VPC フローログ、DNS ログ、CloudTrail イベントを分析し、不正アクセスやマルウェアを検出。
+
+**本プロジェクトでの役割**: EC2 / IAM に対する脅威をリアルタイムで検出。
+
+**コスト**: 30日間無料。その後はイベント量に応じた従量課金。
+
+---
+
+### 2.21 Amazon Inspector
+
+**概要**: 自動脆弱性スキャンサービス。EC2 インスタンスと ECR コンテナイメージの CVE 脆弱性を検出。
+
+**本プロジェクトでの構成**:
+- EC2 スキャン: k3s インスタンスの OS パッケージ脆弱性をチェック
+- ECR スキャン: frontend / backend コンテナイメージの脆弱性をチェック
+
+**コスト**: EC2 スキャン $0.32/インスタンス/月、ECR スキャン $0.09/イメージ/月。
+
+---
+
+### 2.22 AWS Config
+
+**概要**: AWS リソースの設定変更を記録・監査するサービス。コンプライアンスルールで設定違反を検出。
+
+**本プロジェクトでの構成**:
+- Configuration Recorder: 全リソースの設定変更を記録
+- Delivery Channel: S3 バケットに設定スナップショットを配信
+- ルール1: `S3_BUCKET_PUBLIC_READ_PROHIBITED` — S3 バケットのパブリック読み取りを禁止
+- ルール2: `RESTRICTED_INCOMING_TRAFFIC` — 危険なポート（20, 21, 3389, 3306, 4333）の開放をチェック
+
+**注意**: Config Recorder はリージョンに1つのみ。既存がある場合は `enable_config = false` で回避。
+
+---
+
+### 2.23 IAM Access Analyzer
+
+**概要**: IAM ポリシーを分析し、外部からアクセス可能なリソースを検出するサービス。
+
+**本プロジェクトでの構成**: ACCOUNT タイプのアナライザーを作成。S3 バケットや IAM ロールの外部公開を検出。
+
+**コスト**: 無料。
+
+---
+
+### 2.24 Amazon Bedrock Agent
+
+**概要**: 基盤モデルを使用して対話型の AI エージェントを構築するサービス。Action Group で外部 API を呼び出し可能。
+
+**本プロジェクトでの構成**:
+- Agent: 占いコンシェルジュ（日本語対応の instruction 付き）
+- Action Group: OpenAPI schema で 7 つの占い API を定義
+- Lambda (fortune-bridge): Agent → Backend API の橋渡し
+- モデル: `anthropic.claude-3-haiku-20240307-v1:0`（コスト最小）
+
+**コスト**: Haiku — 入力 $0.00025/1K tokens、出力 $0.00125/1K tokens。
+
+---
+
+### 2.25 Amazon EventBridge
+
+**概要**: サーバーレスのイベントバスサービス。AWS サービス間のイベント駆動アーキテクチャを構築。
+
+**本プロジェクトでの役割**: MediaConvert ジョブの状態変更（COMPLETE / ERROR）を検知し、CloudWatch Logs に記録。
+
+**コスト**: 無料（AWS サービスイベントは課金対象外）。
 
 ---
 

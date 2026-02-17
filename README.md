@@ -109,9 +109,13 @@
 | インフラ | Terraform | >= 1.5 |
 | コンテナ | Docker + k3s on EC2 | - |
 | CI/CD | GitHub Actions | - |
-| サーバーレス | AWS Lambda (Python 3.12) | EC2 管理 |
+| サーバーレス | AWS Lambda (Python 3.12) | EC2 管理 / MediaConvert / Bedrock |
 | ワークフロー | AWS Step Functions | EC2 起動・停止 |
 | API 管理 | Amazon API Gateway | REST API |
+| CDN パスルーティング | CloudFront Function | /admin リライト |
+| 動画変換 | AWS MediaConvert | MP4 + HLS 自動変換 |
+| セキュリティ | Security Hub / GuardDuty / Inspector / Config / Access Analyzer | セキュリティ監査 |
+| AI エージェント | Amazon Bedrock Agent | 対話型占いコンシェルジュ |
 
 ## ディレクトリ構成
 
@@ -136,8 +140,11 @@ fortune-compass/
 │   │   ├── networking/       #   VPC, Subnets
 │   │   ├── ecr/              #   ECR リポジトリ
 │   │   ├── ec2-k3s/          #   EC2, k3s, Security Group
-│   │   ├── cloudfront/       #   CloudFront CDN
-│   │   └── management/       #   Lambda, Step Functions, API Gateway, S3 (管理コンソール)
+│   │   ├── cloudfront/       #   CloudFront CDN + /admin パス
+│   │   ├── management/       #   Lambda, Step Functions, API Gateway, S3 (管理コンソール)
+│   │   ├── mediaconvert/     #   MediaConvert 動画変換 (S3 + Lambda + EventBridge)
+│   │   ├── security/         #   Security Hub, GuardDuty, Inspector, Config, Access Analyzer
+│   │   └── bedrock/          #   Bedrock Agent 対話型占いコンシェルジュ
 │   └── environments/
 │       └── dev/              #   開発環境設定
 │
@@ -273,10 +280,21 @@ EC2 を未使用時に停止し、コンピュートコストを削減するた�
 | API Gateway | REST API（API Key 認証） |
 | S3 Static Website | 管理コンソール UI |
 
-**管理コンソール URL**: http://fortune-compass-dev-mgmt-console.s3-website-ap-northeast-1.amazonaws.com
+**管理コンソール URL**: https://d71oywvumn06c.cloudfront.net/admin（CloudFront HTTPS 経由）
 **API エンドポイント**: https://4s30b1da8k.execute-api.ap-northeast-1.amazonaws.com/prod/manage
 
 EC2 停止時のコスト: ~$4/月（EBS + ECR + S3 のみ。EC2 コンピュート ~$9/月 を削減）
+
+## Phase 12: AWS 非コンピュート系サービス拡張
+
+EC2/Lambda 以外の AWS サービスを体験するための拡張。
+
+| 機能 | サービス | 概要 |
+|------|---------|------|
+| CloudFront `/admin` パス | CloudFront Function | 管理コンソールを HTTPS 化 (`/admin`) |
+| 動画変換 | MediaConvert + S3 + Lambda + EventBridge | S3 アップロードで MP4 + HLS 自動変換 |
+| セキュリティ監査 | Security Hub / GuardDuty / Inspector / Config / Access Analyzer | 5 サービスを有効化し既存インフラを監査 |
+| 対話型占い AI | Bedrock Agent + Lambda | 自然言語で占いを実行する AI コンシェルジュ |
 
 ## セットアップ
 
@@ -466,11 +484,14 @@ cd backend && npm run build
 └──────────────────────────────────────────────┘
 ```
 
-CloudFront → EC2 (k3s) の2層構成（**5モジュール / 43リソース**）:
-- CloudFront が HTTPS 終端と静的アセットキャッシュ
+CloudFront → EC2 (k3s) の2層構成（**9モジュール / ~80リソース**）:
+- CloudFront が HTTPS 終端と静的アセットキャッシュ + `/admin` パスで管理コンソール配信
 - k3s の Traefik Ingress がパスベースルーティング: `/api/*` → Backend, `/*` → Frontend
 - EC2 (t3.small) が Public Subnet 上で k3s クラスタを実行
 - Management Console（Lambda + Step Functions + API Gateway + S3）で EC2 ライフサイクルを管理
+- MediaConvert で動画自動変換（S3 → Lambda → MediaConvert → S3）
+- Security Hub / GuardDuty / Inspector / Config / Access Analyzer でセキュリティ監査
+- Bedrock Agent で対話型占い AI コンシェルジュ
 
 ### デプロイ手順
 
@@ -523,4 +544,7 @@ terraform apply \
 | CloudFront | ~$0（無料枠内） |
 | その他 (ECR, CloudWatch, S3) | ~$3 |
 | Management Console (Lambda, Step Functions, API GW, S3) | $0（無料枠内） |
-| **合計** | **~$14/月**（EC2 停止時は ~$5/月） |
+| Security Hub / GuardDuty / Inspector / Config | ~$5〜10（無料枠終了後） |
+| MediaConvert | 従量課金（動画変換時のみ） |
+| Bedrock Agent | 従量課金（推論実行時のみ） |
+| **合計** | **~$19〜24/月**（EC2 停止時は ~$10〜15/月） |

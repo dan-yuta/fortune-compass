@@ -1,0 +1,132 @@
+openapi: "3.0.0"
+info:
+  title: "Fortune Compass API"
+  version: "1.0.0"
+  description: "Fortune telling API endpoints for Bedrock Agent"
+paths:
+  /api/fortune/dashboard:
+    get:
+      operationId: getDashboard
+      summary: "Get today's fortune dashboard (overall luck overview)"
+      description: "Returns a comprehensive daily fortune dashboard with ratings for various luck categories."
+      parameters:
+        - name: birthday
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Birthday in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: "Successful response with fortune dashboard"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/zodiac:
+    get:
+      operationId: getZodiac
+      summary: "Get zodiac (star sign) fortune"
+      description: "Returns fortune reading based on Western zodiac sign derived from birthday."
+      parameters:
+        - name: birthday
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "Birthday in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: "Zodiac fortune result"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/tarot:
+    get:
+      operationId: getTarot
+      summary: "Draw tarot cards and get a reading"
+      description: "Performs a tarot card reading with past, present, and future card draws."
+      responses:
+        "200":
+          description: "Tarot reading result"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/omikuji:
+    get:
+      operationId: getOmikuji
+      summary: "Draw an omikuji (Japanese fortune slip)"
+      description: "Returns a traditional Japanese omikuji fortune with categories like daikichi, kichi, etc."
+      responses:
+        "200":
+          description: "Omikuji result"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/dream:
+    get:
+      operationId: getDreamFortune
+      summary: "Get dream interpretation fortune"
+      description: "Returns fortune interpretation based on a dream keyword."
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "Dream keyword to interpret (e.g., 'cat', 'mountain', 'water')"
+      responses:
+        "200":
+          description: "Dream interpretation result"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/blood-type:
+    get:
+      operationId: getBloodTypeFortune
+      summary: "Get blood type fortune"
+      description: "Returns fortune reading based on blood type (A, B, O, AB)."
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ["A", "B", "O", "AB"]
+          description: "Blood type"
+      responses:
+        "200":
+          description: "Blood type fortune result"
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/fortune/fengshui:
+    get:
+      operationId: getFengshui
+      summary: "Get feng shui fortune and advice"
+      description: "Returns feng shui-based fortune with directional and color advice."
+      parameters:
+        - name: birthday
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Birthday in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: "Feng shui fortune result"
+          content:
+            application/json:
+              schema:
+                type: object

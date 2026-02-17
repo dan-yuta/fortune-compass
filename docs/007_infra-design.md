@@ -126,13 +126,14 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 3.6 Terraform モジュール分割
 
-**決定**: 5モジュール構成（networking / ecr / ec2-k3s / cloudfront / management）+ k8s マニフェスト。
+**決定**: 9モジュール構成（networking / ecr / ec2-k3s / cloudfront / management / mediaconvert / security / bedrock）+ k8s マニフェスト。
 
 **理由**:
 - ALB / ECS を廃止し、EC2 + k3s に統合したためモジュール数が削減
 - k8s マニフェスト（Deployment, Service, Ingress）は Terraform 外で管理
 - 環境追加（staging / production）時にモジュールを再利用可能
 - management モジュールで EC2 ライフサイクル管理（Lambda, Step Functions, API Gateway, S3）を追加
+- Phase 12 で非コンピュート系 AWS サービス（MediaConvert / Security / Bedrock）を追加
 
 ---
 
@@ -301,8 +302,11 @@ infra/terraform/
 │   ├── networking/     VPC, Subnets, IGW, Routes
 │   ├── ecr/            ECR リポジトリ x2, ライフサイクルポリシー
 │   ├── ec2-k3s/        EC2, SG, Key Pair, User Data (k3s install)
-│   ├── cloudfront/     CloudFront Distribution, Cache Behaviors
-│   └── management/     Lambda, Step Functions, API Gateway, S3 (管理コンソール)
+│   ├── cloudfront/     CloudFront Distribution, Cache Behaviors, CF Function (/admin)
+│   ├── management/     Lambda, Step Functions, API Gateway, S3 (管理コンソール)
+│   ├── mediaconvert/   S3 x2, Lambda, MediaConvert, EventBridge (動画変換)
+│   ├── security/       Security Hub, GuardDuty, Inspector, Config, Access Analyzer
+│   └── bedrock/        Bedrock Agent, Lambda (fortune-bridge), OpenAPI Schema
 ├── environments/
 │   └── dev/            モジュール結合 + 環境固有設定
 └── k8s/
@@ -320,9 +324,12 @@ infra/terraform/
 | networking | 6 | VPC, Subnet x2, IGW, Route Table, Association x2 |
 | ecr | 4 | ECR Repository x2, Lifecycle Policy x2 |
 | ec2-k3s | 4 | EC2 Instance, SG, Key Pair, EBS Volume |
-| cloudfront | 1 | CloudFront Distribution（3 Cache Behaviors 含む） |
+| cloudfront | ~3 | CloudFront Distribution, CF Function (admin_rewrite) |
 | management | 28 | Lambda, Step Functions x2, API Gateway, S3, IAM Role/Policy 等 |
-| **合計** | **43** | |
+| mediaconvert | ~12 | S3 x2, Lambda, IAM Role x2, S3 Notification, EventBridge, CloudWatch |
+| security | ~13 | Security Hub, GuardDuty, Inspector, Config Recorder/Channel/Rules, S3, IAM, Access Analyzer |
+| bedrock | ~9 | Bedrock Agent, Agent Action Group, Agent Alias, Lambda, IAM Role x2 |
+| **合計** | **~80** | |
 
 ### 8.4 主要変数
 
@@ -383,7 +390,10 @@ env:
 | ECR | ~$1 | イメージストレージ（10世代保持） |
 | CloudWatch Logs | ~$1 | 14日保持 |
 | S3 + DynamoDB | < $1 | Terraform ステート |
-| **合計** | **~$14/月** | |
+| Security Hub / GuardDuty / Inspector / Config | ~$5〜10 | 無料枠終了後 |
+| MediaConvert | 従量課金 | 動画変換時のみ |
+| Bedrock Agent | 従量課金 | 推論実行時のみ |
+| **合計** | **~$19〜24/月** | |
 
 ### コスト削減オプション
 
@@ -515,7 +525,62 @@ EC2 を未使用時に停止することで、コンピュートコスト（~$9/
 
 ---
 
-## 13. 今後の拡張
+## 13. Phase 12: AWS 非コンピュート系サービス拡張
+
+### 13.1 CloudFront `/admin` パス
+
+管理コンソール URL を `https://d71oywvumn06c.cloudfront.net/admin` に短縮 + HTTPS 化。
+
+- CloudFront Function でパスリライト（`/admin*` → `/index.html`）
+- S3 website endpoint を第2オリジンとして追加
+- `dynamic` ブロックで `enable_admin_origin` フラグによる ON/OFF 制御
+
+### 13.2 MediaConvert（動画変換）
+
+S3 アップロードをトリガーに動画を MP4 + HLS に自動変換。
+
+```
+S3 (input) → Lambda (transcode_trigger) → MediaConvert → S3 (output)
+                                                     ↓
+                                              EventBridge → CloudWatch Logs
+```
+
+- Input/Output S3 バケットにライフサイクルポリシー（7日/30日で自動削除）
+- `.mp4` アップロードで Lambda が MediaConvert ジョブを作成
+- QVBR モードで品質ベースのエンコーディング（720p H.264 + AAC）
+- EventBridge でジョブ完了/エラーをロギング
+
+### 13.3 Security（セキュリティ監査）
+
+5つの AWS セキュリティサービスを有効化し、既存インフラを監査。
+
+| サービス | 役割 |
+|---------|------|
+| Security Hub | セキュリティ統合ダッシュボード + AWS 基礎ベストプラクティス標準 |
+| GuardDuty | 脅威検出（不正アクセス・マルウェア検知） |
+| Inspector | EC2 / ECR 脆弱性スキャン |
+| AWS Config | リソース設定記録 + コンプライアンスルール（S3公開禁止, ポート制限） |
+| IAM Access Analyzer | IAM ポリシーの外部アクセス分析 |
+
+- 全サービス `count` ベースで個別 ON/OFF 可能
+- Config Recorder はリージョンに1つのみ制限あり（`enable_config = false` で回避可能）
+
+### 13.4 Bedrock Agent（対話型占いコンシェルジュ）
+
+自然言語で占いを実行する AI エージェント。
+
+```
+ユーザー → Bedrock Agent → Claude (推論) → Lambda (fortune-bridge) → App Backend API
+```
+
+- Bedrock Agent に占いコンシェルジュの instruction を設定
+- OpenAPI schema で 7 つの占い API を定義（dashboard, zodiac, tarot, omikuji, dream, blood-type, fengshui）
+- Lambda (fortune-bridge) が Agent の Action Group 呼び出しを Backend API に橋渡し
+- デフォルトモデル: `anthropic.claude-3-haiku-20240307-v1:0`（コスト最小）
+
+---
+
+## 14. 今後の拡張
 
 | 項目 | 優先度 | 概要 |
 |-----|-------|------|

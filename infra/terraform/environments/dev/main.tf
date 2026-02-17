@@ -56,7 +56,46 @@ module "management" {
 module "cloudfront" {
   source = "../../modules/cloudfront"
 
-  project_name  = var.project_name
-  environment   = var.environment
-  origin_domain = module.ec2_k3s.public_dns
+  project_name        = var.project_name
+  environment         = var.environment
+  origin_domain       = module.ec2_k3s.public_dns
+  enable_admin_origin = true
+  admin_origin_domain = module.management.console_website_endpoint
+}
+
+# --- MediaConvert (動画変換) ---
+
+module "mediaconvert" {
+  source = "../../modules/mediaconvert"
+
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+}
+
+# --- Security (セキュリティ監査) ---
+
+module "security" {
+  source = "../../modules/security"
+
+  project_name = var.project_name
+  environment  = var.environment
+  aws_region   = var.aws_region
+
+  enable_security_hub    = true
+  enable_guardduty       = true
+  enable_inspector       = true
+  enable_config          = true
+  enable_access_analyzer = true
+}
+
+# --- Bedrock Agent (対話型占いコンシェルジュ) ---
+
+module "bedrock" {
+  source = "../../modules/bedrock"
+
+  project_name     = var.project_name
+  environment      = var.environment
+  aws_region       = var.aws_region
+  app_api_base_url = module.cloudfront.distribution_url
 }
