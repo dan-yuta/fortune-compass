@@ -859,10 +859,40 @@ aws ecr describe-images \
 
 まず、EC2 サーバーに SSH で接続します。
 
+#### 事前準備：SSH 秘密鍵の取得
+
+SSH 接続に使う秘密鍵は、Terraform が自動生成しています。
+以下のコマンドで秘密鍵をファイルに保存してください（初回のみ）。
+
+```bash
+# Terraform の作業ディレクトリに移動
+cd /home/dangi/work/my-project/fortune-compass/infra/terraform/environments/dev
+
+# Terraform から SSH 秘密鍵を取り出してファイルに保存
+terraform output -raw k3s_ssh_private_key > ~/.ssh/fortune-compass-k3s.pem
+
+# 秘密鍵のパーミッションを設定（自分だけが読めるようにする）
+chmod 600 ~/.ssh/fortune-compass-k3s.pem
+```
+
+> **なぜ `chmod 600` が必要？**: SSH は「他の人にも読める鍵」を使うことを拒否します。
+> `chmod 600` は「自分だけが読み書きできる」という設定です。これをやらないと接続できません。
+
+#### EC2 に SSH 接続する
+
 ```bash
 # EC2 サーバーに SSH 接続
-ssh -i ~/.ssh/your-key.pem ubuntu@<EC2のIPアドレス>
+ssh -i ~/.ssh/fortune-compass-k3s.pem ubuntu@13.192.182.54
 ```
+
+> **EC2 の IP アドレスが変わった場合**: この IP は Elastic IP（EIP）なので、
+> EC2 を停止・再起動しても変わりません。ただし、Terraform でインフラを作り直した場合は
+> 変わる可能性があります。その場合は以下のコマンドで最新の IP を確認できます：
+>
+> ```bash
+> cd /home/dangi/work/my-project/fortune-compass/infra/terraform/environments/dev
+> terraform output ec2_public_ip
+> ```
 
 接続した後、以下のコマンドで状態を確認できます。
 
@@ -1032,6 +1062,10 @@ backend-6d4f5b7c8-x9z2w    0/1     CrashLoopBackOff   5          3m
    ```
 2. Pod の詳細情報を確認する:
    ```bash
+   # まず Pod 名を確認
+   sudo k3s kubectl get pods -n fortune-compass
+   # 出力例: backend-5d8f9b7c4a-x2k9j
+   # ↓ 上記の Pod 名に置き換えて実行
    sudo k3s kubectl describe pod <Pod名> -n fortune-compass
    ```
 3. 必要な環境変数が ConfigMap や Secret に設定されているか確認する

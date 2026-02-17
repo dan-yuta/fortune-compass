@@ -323,11 +323,23 @@ Traefik Ingress Controller
 
 #### 方法1: SSH キーを使って接続
 
+**事前準備**: SSH 鍵は Terraform で自動生成されています。まだ取得していない場合は、ローカル PC で以下を実行してください。
+
 ```bash
-# ターミナル（コマンドプロンプト）で以下を実行
-# <EC2のIPアドレス> は実際の Elastic IP に置き換えてください
-ssh -i ~/.ssh/your-key.pem ubuntu@<EC2のIPアドレス>
+# SSH 鍵をまだ取得していない場合
+cd /home/dangi/work/my-project/fortune-compass/infra/terraform/environments/dev
+terraform output -raw k3s_ssh_private_key > ~/.ssh/fortune-compass-k3s.pem
+chmod 600 ~/.ssh/fortune-compass-k3s.pem
 ```
+
+鍵を取得したら、以下のコマンドで EC2 に接続します。
+
+```bash
+ssh -i ~/.ssh/fortune-compass-k3s.pem ubuntu@13.192.182.54
+```
+
+> **IP アドレスの確認方法**: `terraform output ec2_public_ip` で確認できます（Terraform ディレクトリで実行）。
+> EC2 の IP は Elastic IP（EIP）なので、EC2 を停止・起動しても変わりません。
 
 ```
 出力例:
@@ -347,7 +359,15 @@ SSH キーがなくても、AWS コンソールから接続できます。
 
 ```bash
 # AWS CLI がインストールされている場合
-aws ssm start-session --target <EC2のインスタンスID> --region ap-northeast-1
+
+# まずインスタンス ID を確認
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=fortune-compass-dev-k3s" \
+  --query 'Reservations[0].Instances[0].InstanceId' \
+  --output text
+
+# 上で確認したインスタンス ID を使って接続（例: i-0abc1234def56789a）
+aws ssm start-session --target i-0abc1234def56789a --region ap-northeast-1
 ```
 
 ```
@@ -554,11 +574,14 @@ fortune-compass   traefik   *       10.0.0.123     80      30d
 特定の Pod について、もっと詳しく見てみましょう。
 
 ```bash
-# まず Pod の名前を確認
+# まず Pod 名を確認（Pod 名は毎回変わるため、必ず最新を取得）
 sudo k3s kubectl get pods -n fortune-compass
+# 出力例の NAME 列（例: backend-5d8f9b7c4a-x2k9j）を使用
 
-# Pod の詳細を表示（<pod-name> は実際の Pod 名に置き換える）
-sudo k3s kubectl describe pod backend-5d8f9b7c4a-x2k9j -n fortune-compass
+# Pod の詳細を表示（Pod 名は上で確認した実際の名前に置き換える）
+sudo k3s kubectl describe pod backend-xxxxx-xxxxx -n fortune-compass
+#                              ^^^^^^^^^^^^^^^^^^^^
+#                              上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -609,8 +632,10 @@ Events:
 アプリが出力しているログ（記録）を見てみましょう。
 
 ```bash
-# Pod のログを表示（<pod-name> は実際の Pod 名に置き換える）
-sudo k3s kubectl logs backend-5d8f9b7c4a-x2k9j -n fortune-compass
+# Pod のログを表示（Pod 名は get pods で確認した実際の名前に置き換える）
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass
+#                      ^^^^^^^^^^^^^^^^^^^^
+#                      上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -721,6 +746,7 @@ Fortune Compass のヘルスチェック設定:
 EC2 にSSH接続した状態で、実際にヘルスチェックのエンドポイントにアクセスしてみましょう。
 
 ```bash
+# ※ EC2 に SSH 接続した状態で実行
 # バックエンドのヘルスチェック
 curl localhost/api/health
 ```
@@ -731,6 +757,7 @@ curl localhost/api/health
 ```
 
 ```bash
+# ※ EC2 に SSH 接続した状態で実行
 # フロントエンドのヘルスチェック
 curl localhost/health
 ```
@@ -746,8 +773,8 @@ OK
 # Pod 名を確認
 sudo k3s kubectl get pods -n fortune-compass
 
-# describe で Liveness / Readiness の状態を確認
-sudo k3s kubectl describe pod backend-5d8f9b7c4a-x2k9j -n fortune-compass | grep -A 3 "Liveness\|Readiness"
+# describe で Liveness / Readiness の状態を確認（Pod 名は上で確認した実際の名前に置き換え）
+sudo k3s kubectl describe pod backend-xxxxx-xxxxx -n fortune-compass | grep -A 3 "Liveness\|Readiness"
 ```
 
 ```
@@ -924,8 +951,8 @@ ECR（イメージ保管庫）にプッシュ
     ↓
 SSH で EC2 に接続
     ↓
-sudo k3s kubectl set image deployment/backend backend=<新イメージ>
-sudo k3s kubectl set image deployment/frontend frontend=<新イメージ>
+sudo k3s kubectl set image deployment/backend backend=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-northeast-1.amazonaws.com/fortune-compass-dev-backend:新しいタグ
+sudo k3s kubectl set image deployment/frontend frontend=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-northeast-1.amazonaws.com/fortune-compass-dev-frontend:新しいタグ
     ↓
 Kubernetes がローリングアップデートを実行
     ↓
@@ -1026,13 +1053,15 @@ sudo k3s kubectl get pods -n fortune-compass
 **Step 2**: backend Pod を削除する
 
 ```bash
-# <backend-pod-name> は実際の Pod 名に置き換えてください
-sudo k3s kubectl delete pod backend-5d8f9b7c4a-x2k9j -n fortune-compass
+# Step 1 でメモした実際の Pod 名に置き換えてください
+sudo k3s kubectl delete pod backend-xxxxx-xxxxx -n fortune-compass
+#                           ^^^^^^^^^^^^^^^^^^^^
+#                           Step 1 で確認した実際の Pod 名に置き換え
 ```
 
 ```
 出力例:
-pod "backend-5d8f9b7c4a-x2k9j" deleted
+pod "backend-xxxxx-xxxxx" deleted
 ```
 
 **Step 3**: Pod の復旧をリアルタイムで観察する
@@ -1451,8 +1480,10 @@ RESTARTS が `0` であることをメモしてください。
 # Pod 名を確認
 sudo k3s kubectl get pods -n fortune-compass
 
-# Pod 内のプロセスを kill する（<backend-pod> は実際の Pod 名に置き換える）
-sudo k3s kubectl exec -it backend-5d8f9b7c4a-t8u3v -n fortune-compass -- /bin/sh -c "kill 1"
+# Pod 内のプロセスを kill する（Pod 名は上で確認した実際の名前に置き換え）
+sudo k3s kubectl exec -it backend-xxxxx-xxxxx -n fortune-compass -- /bin/sh -c "kill 1"
+#                         ^^^^^^^^^^^^^^^^^^^^
+#                         上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -1599,6 +1630,7 @@ frontend-7b6c4d8e5f-m3n7p  1/1     Running   0             2d
 ```
 
 ```bash
+# ※ EC2 に SSH 接続した状態で実行
 # バックエンドが動いていることを確認
 curl localhost/api/health
 ```
@@ -1638,6 +1670,7 @@ backend Pod がなくなりました。
 **Step 3**: バックエンドにアクセスしてみる
 
 ```bash
+# ※ EC2 に SSH 接続した状態で実行
 curl localhost/api/health
 ```
 
@@ -1649,7 +1682,7 @@ curl localhost/api/health
 バックエンドが存在しないので、502 エラー（Bad Gateway）が返ってきます。Ingress（Traefik）は backend Service にリクエストを転送しようとしますが、転送先の Pod がないのでエラーになります。
 
 ```
-リクエストの流れ:
+リクエストの流れ（※ EC2 に SSH 接続した状態で実行）:
 
   curl localhost/api/health
        ↓
@@ -1703,6 +1736,7 @@ backend-5d8f9b7c4a-w6x8y   1/1     Running             0          8s
 **Step 6**: 復旧を確認する
 
 ```bash
+# ※ EC2 に SSH 接続した状態で実行
 curl localhost/api/health
 ```
 
@@ -1788,8 +1822,10 @@ frontend-7b6c4d8e5f-m3n7p  1/1     Running   0          2d
 **Step 1**: 通常のログを表示する
 
 ```bash
-# backend Pod のログ（<pod-name> は実際の Pod 名に置き換える）
-sudo k3s kubectl logs backend-5d8f9b7c4a-w6x8y -n fortune-compass
+# backend Pod のログ（Pod 名は get pods で確認した実際の名前に置き換える）
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass
+#                      ^^^^^^^^^^^^^^^^^^^^
+#                      上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -1807,14 +1843,15 @@ GET /api/fortune/zodiac 200 15ms
 ```bash
 # -f オプションで、新しいログが出るたびにリアルタイムで表示される
 # 停止するには Ctrl+C を押す
-sudo k3s kubectl logs -f backend-5d8f9b7c4a-w6x8y -n fortune-compass
+sudo k3s kubectl logs -f backend-xxxxx-xxxxx -n fortune-compass
+#                        ← 上で確認した実際の Pod 名に置き換え
 ```
 
 ```
 出力例:
 GET /api/health 200 2ms
 GET /api/health 200 3ms
-（ここで別のターミナルから curl localhost/api/fortune/zodiac を実行すると...）
+（ここで別のターミナルから EC2 に SSH 接続して curl localhost/api/fortune/zodiac を実行すると...）
 GET /api/fortune/zodiac 200 12ms     ← リアルタイムで表示される！
 ```
 
@@ -1826,7 +1863,8 @@ GET /api/fortune/zodiac 200 12ms     ← リアルタイムで表示される！
 
 ```bash
 # --previous オプションで、前回（再起動前）のコンテナのログを表示
-sudo k3s kubectl logs backend-5d8f9b7c4a-w6x8y -n fortune-compass --previous
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass --previous
+#                      ← 上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -1862,7 +1900,8 @@ Health check endpoint: /api/health
 
 ```bash
 # 最新の20行だけ表示
-sudo k3s kubectl logs backend-5d8f9b7c4a-w6x8y -n fortune-compass --tail=20
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass --tail=20
+#                      ← 上で確認した実際の Pod 名に置き換え
 ```
 
 ```
@@ -1946,34 +1985,37 @@ GET /api/health 200 2ms
        └── Pod が存在しない → Step 7 (Deployment を確認)
        │
        ▼
+  ※ 以下の <Pod名> はすべて get pods で確認した実際の Pod 名に置き換えてください
+  $ sudo k3s kubectl get pods -n fortune-compass  ← まずこれで Pod 名を確認
+
   Step 2: ImagePullBackOff の対処
-  $ sudo k3s kubectl describe pod <pod-name> -n fortune-compass
+  $ sudo k3s kubectl describe pod <Pod名> -n fortune-compass
   → Events セクションでエラー詳細を確認
   → イメージ名は正しい？ ECR シークレットは有効？
   → ECR シークレットの更新: sudo /usr/local/bin/refresh-ecr-secret.sh
        │
        ▼
   Step 3: CrashLoopBackOff の対処
-  $ sudo k3s kubectl logs <pod-name> -n fortune-compass --previous
+  $ sudo k3s kubectl logs <Pod名> -n fortune-compass --previous
   → 前回のクラッシュ時のログでエラーメッセージを確認
   → アプリのバグ？ 環境変数の設定ミス？
        │
        ▼
   Step 4: ログの確認
-  $ sudo k3s kubectl logs <pod-name> -n fortune-compass
+  $ sudo k3s kubectl logs <Pod名> -n fortune-compass
   → ERROR や Warning を探す
   → リアルタイム追跡: -f オプション
        │
        ▼
   Step 5: Pending の対処
-  $ sudo k3s kubectl describe pod <pod-name> -n fortune-compass
+  $ sudo k3s kubectl describe pod <Pod名> -n fortune-compass
   → Events セクションで「Insufficient cpu」や「Insufficient memory」を探す
   → ノードのリソースが足りない可能性
   $ sudo k3s kubectl top nodes
        │
        ▼
   Step 6: OOMKilled の対処
-  $ sudo k3s kubectl describe pod <pod-name> -n fortune-compass
+  $ sudo k3s kubectl describe pod <Pod名> -n fortune-compass
   → Limits のメモリ値を確認
   → アプリのメモリ使用量が limits を超えていないか確認
   → 必要なら limits を増やす
@@ -1991,20 +2033,25 @@ GET /api/health 200 2ms
 # 1. 全体の状態をざっくり確認
 sudo k3s kubectl get all -n fortune-compass
 
-# 2. Pod の状態を確認
+# 2. Pod の状態を確認（Pod 名は毎回変わるため、必ず最新を取得）
 sudo k3s kubectl get pods -n fortune-compass
+# 出力例の NAME 列（例: backend-5d8f9b7c4a-x2k9j）を以下のコマンドで使用
 
 # 3. Pod の詳細情報（Events が重要！）
-sudo k3s kubectl describe pod <pod-name> -n fortune-compass
+sudo k3s kubectl describe pod backend-xxxxx-xxxxx -n fortune-compass
+#                              ← 上で確認した実際の Pod 名に置き換え
 
 # 4. Pod のログ
-sudo k3s kubectl logs <pod-name> -n fortune-compass
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass
+#                      ← 上で確認した実際の Pod 名に置き換え
 
 # 5. 前回のコンテナのログ（再起動後に見る）
-sudo k3s kubectl logs <pod-name> -n fortune-compass --previous
+sudo k3s kubectl logs backend-xxxxx-xxxxx -n fortune-compass --previous
+#                      ← 上で確認した実際の Pod 名に置き換え
 
 # 6. リアルタイムログ追跡
-sudo k3s kubectl logs -f <pod-name> -n fortune-compass
+sudo k3s kubectl logs -f backend-xxxxx-xxxxx -n fortune-compass
+#                        ← 上で確認した実際の Pod 名に置き換え
 
 # 7. イベント一覧（時系列）
 sudo k3s kubectl get events -n fortune-compass --sort-by=.metadata.creationTimestamp
@@ -2014,7 +2061,8 @@ sudo k3s kubectl top nodes
 sudo k3s kubectl top pods -n fortune-compass
 
 # 9. Pod 内でコマンドを実行（デバッグ用）
-sudo k3s kubectl exec -it <pod-name> -n fortune-compass -- /bin/sh
+sudo k3s kubectl exec -it backend-xxxxx-xxxxx -n fortune-compass -- /bin/sh
+#                         ← 上で確認した実際の Pod 名に置き換え
 
 # 10. Ingress の状態確認
 sudo k3s kubectl describe ingress fortune-compass -n fortune-compass
@@ -2136,7 +2184,10 @@ spec:
         - name: ecr-secret       # ECR からイメージを取得するための認証情報
       containers:
         - name: backend
-          image: <ECR_URI>       # ECR のイメージ URI（CI/CD で自動設定）
+          image: <AWSアカウントID>.dkr.ecr.ap-northeast-1.amazonaws.com/fortune-compass-dev-backend:タグ
+          # ↑ ECR のイメージ URI（CI/CD で自動設定）
+          # AWSアカウントID は aws sts get-caller-identity --query Account --output text で確認
+          # または terraform output ecr_backend_url で URI 全体を確認できます
           ports:
             - containerPort: 8080
           env:
@@ -2204,7 +2255,9 @@ spec:
         - name: ecr-secret
       containers:
         - name: frontend
-          image: <ECR_URI>
+          image: <AWSアカウントID>.dkr.ecr.ap-northeast-1.amazonaws.com/fortune-compass-dev-frontend:タグ
+          # ↑ ECR のイメージ URI（CI/CD で自動設定）
+          # terraform output ecr_frontend_url で URI を確認できます
           ports:
             - containerPort: 3000
           env:
