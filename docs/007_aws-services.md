@@ -150,15 +150,15 @@
 
 ### 2.8 Amazon CloudWatch Logs
 
-**概要**: ログの収集、監視、分析を行うサービス。ECS コンテナの stdout/stderr を自動的に収集。
+**概要**: ログの収集、監視、分析を行うサービス。Lambda 関数やイベントのログを自動的に収集。
 
 **本プロジェクトでの構成**:
 | ロググループ | 保持期間 | 内容 |
 |------------|---------|------|
-| `/ecs/fortune-compass-dev-frontend` | 14日 | Next.js のアプリケーションログ |
-| `/ecs/fortune-compass-dev-backend` | 14日 | Express のアプリケーションログ |
+| `/aws/lambda/fortune-compass-dev-*` | 14日 | Lambda 関数の実行ログ（EC2 管理、動画変換トリガー等） |
+| `/aws/events/fortune-compass-dev-mediaconvert` | 14日 | MediaConvert ジョブ完了/エラーイベント |
 
-**活用例**: エラー調査、リクエストログ確認、パフォーマンス分析。
+**活用例**: Lambda エラー調査、MediaConvert ジョブ監視。k3s コンテナログは `kubectl logs` で直接確認。
 
 ---
 

@@ -10,30 +10,33 @@
 | 項目 | 内容 |
 |------|------|
 | プロダクト名 | Fortune Compass |
-| バージョン | v2.1（Phase 11 完了） |
+| バージョン | v2.2（Phase 12 完了） |
 | 目的 | 16占術（4カテゴリ: 定番・誕生日・伝統・特殊）+ 総合ダッシュボードを提供する総合占いWebアプリ |
 | 想定作業時間 | 2〜3時間 |
 | 実行環境 | AWS EC2 + k3s（CloudFront 経由） |
 | 技術スタック | Next.js 16.x + Express 5.x + TypeScript + Tailwind CSS v4 |
-| インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC) |
-| IaC | Terraform（43 リソース） |
+| インフラ | AWS (CloudFront / EC2 + k3s / ECR / VPC / MediaConvert / Security Hub / Bedrock) |
+| IaC | Terraform（~80 リソース） |
 | CI/CD | GitHub Actions |
 
 ---
 
 ## 2. 関連ドキュメント
 
-| # | ドキュメント | パス | 概要 |
-|---|------------|------|------|
-| 1 | 要件定義書 | [`001_requirements.md`](./001_requirements.md) | プロジェクト概要・対応占術・機能要件・技術構成 |
-| 2 | 仕様書 | [`002_spec-v1.md`](./002_spec-v1.md) | 機能要件・API設計・占いロジック・ディレクトリ構成 |
-| 3 | デザインシステム | [`003_design-system.md`](./003_design-system.md) | カラー・タイポグラフィ・コンポーネント仕様・Tailwind設定 |
-| 4 | UI設計方針 | [`004_ui-design.md`](./004_ui-design.md) | 画面別ワイヤーフレーム・遷移フロー・状態設計 |
-| 5 | UXレビュー | [`005_ux-review.md`](./005_ux-review.md) | UX観点のレビュー・改善提案 |
-| 6 | テスト設計書 | [`006_test-design.md`](./006_test-design.md) | 単体テスト・APIテスト・手動テストケース |
-| 7 | インフラ設計書 | [`007_infra-design.md`](./007_infra-design.md) | AWS インフラ設計・アーキテクチャ・コスト |
-| 8 | AWS サービス一覧 | [`008_aws-services.md`](./008_aws-services.md) | 使用 AWS サービスの解説 |
-| 9 | システム全体解説 | [`009_system-overview.md`](./009_system-overview.md) | システム構成・技術詳細の総合解説 |
+| # | フェーズ | ドキュメント | パス | 概要 |
+|---|---------|------------|------|------|
+| 1 | Phase 1: 要件定義 | 要件定義書 | [`001_requirements.md`](./001_requirements.md) | プロジェクト概要・対応占術・機能要件・技術構成 |
+| 2 | Phase 2: 設計 | 仕様書 | [`002_spec-v1.md`](./002_spec-v1.md) | 機能要件・API設計・占いロジック・ディレクトリ構成 |
+| 3 | Phase 2: 設計 | デザインシステム | [`003_design-system.md`](./003_design-system.md) | カラー・タイポグラフィ・コンポーネント仕様・Tailwind設定 |
+| 4 | Phase 2: 設計 | UI設計方針 | [`004_ui-design.md`](./004_ui-design.md) | 画面別ワイヤーフレーム・遷移フロー・状態設計 |
+| 5 | Phase 3: 計画 | SSOT Issue | [`005_ssot-issue.md`](./005_ssot-issue.md) | 進捗管理・タスク・判断記録・マイルストーン |
+| 6 | Phase 4: 実装 | インフラ設計書 | [`006_infra-design.md`](./006_infra-design.md) | AWS インフラ設計・アーキテクチャ・コスト |
+| 7 | Phase 4: 実装 | AWS サービス一覧 | [`007_aws-services.md`](./007_aws-services.md) | 使用 AWS サービスの解説 |
+| 8 | Phase 5: テスト | テスト設計書 | [`008_test-design.md`](./008_test-design.md) | 単体テスト・APIテスト・手動テストケース |
+| 9 | Phase 5.5: 品質ゲート | UXレビュー | [`009_ux-review.md`](./009_ux-review.md) | UX観点のレビュー・改善提案 |
+| 10 | Phase 6: ドキュメント | システム全体解説 | [`010_system-overview.md`](./010_system-overview.md) | システム構成・技術詳細の総合解説 |
+| 11 | Phase 6: ドキュメント | CI/CD 学習ガイド | [`011_cicd-learning.md`](./011_cicd-learning.md) | CI/CD パイプラインの初心者向け解説 |
+| 12 | Phase 6: ドキュメント | Kubernetes 学習ガイド | [`012_kubernetes-learning.md`](./012_kubernetes-learning.md) | k3s / Kubernetes の学習 + 障害テスト手順 |
 
 ---
 
@@ -207,6 +210,15 @@ M5 結合 + 動作確認（20分）
 | SSM Agent 設定 | ✅ 完了 | Lambda からのリモートコマンド実行 |
 | Terraform management モジュール | ✅ 完了 | 28 リソース追加（0 destroy） |
 
+### M11: Phase 12 — AWS非コンピュート系サービス拡張
+| タスク | 状態 | 備考 |
+|--------|------|------|
+| CloudFront /admin パス（CF Function リライト） | ✅ 完了 | 管理コンソール HTTPS 化 + URL 短縮 |
+| MediaConvert 動画変換パイプライン | ✅ 完了 | S3 → Lambda → MP4+HLS 自動変換 |
+| Security Hub / GuardDuty / Inspector / Config / Access Analyzer | ✅ 完了 | 5サービス有効化、count ベースで個別 ON/OFF |
+| Bedrock Agent（対話型占いコンシェルジュ） | ✅ 完了 | Claude 3 Haiku + OpenAPI Action Group |
+| Terraform 3モジュール追加（mediaconvert / security / bedrock） | ✅ 完了 | 43 added, 2 changed |
+
 ---
 
 ## 7. スコープ外（将来対応）
@@ -234,3 +246,5 @@ M5 結合 + 動作確認（20分）
 | 2026-02-17 | スコープ外を更新。実装済み項目（履歴・SNSシェア・E2E・多言語・PWA）を除外 |
 | 2026-02-17 | M9 追加。Phase 9 占術拡充（12占術追加）完了、全ドキュメント更新 |
 | 2026-02-17 | M10 追加。Phase 11 Management Console（EC2 ライフサイクル管理）完了。Terraform 28 リソース追加 |
+| 2026-02-17 | M11 追加。Phase 12 AWS非コンピュート系サービス拡張完了。CloudFront /admin, MediaConvert, Security, Bedrock Agent |
+| 2026-02-17 | 関連ドキュメントに 011_cicd-learning.md, 012_kubernetes-learning.md 追加 |

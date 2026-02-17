@@ -278,6 +278,47 @@ EC2 ライフサイクル管理コンソール（Lambda + Step Functions + API G
 
 ---
 
+## 5.8 Phase 12 テスト（AWS非コンピュート系サービス拡張）
+
+Phase 12 で追加された4機能（CloudFront /admin, MediaConvert, Security, Bedrock Agent）はインフラレベルのテストとして手動で実施。
+
+### TC-CF001: CloudFront /admin パス
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-CF001-01 | `https://d71oywvumn06c.cloudfront.net/admin` アクセス | 管理コンソール HTML 表示 |
+| TC-CF001-02 | `https://d71oywvumn06c.cloudfront.net/api/health` | 既存 API 正常（200 OK） |
+| TC-CF001-03 | `https://d71oywvumn06c.cloudfront.net` | メインアプリ正常表示 |
+
+### TC-MC001: MediaConvert 動画変換
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-MC001-01 | `.mp4` を input バケットにアップロード | Lambda 起動 → MediaConvert ジョブ作成 |
+| TC-MC001-02 | MediaConvert ジョブ完了 | output バケットに MP4 + HLS 出力 |
+| TC-MC001-03 | EventBridge → CloudWatch Logs | ジョブ完了ログ記録 |
+
+### TC-SEC001: セキュリティ監査サービス
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-SEC001-01 | Security Hub 有効化 | FSBP 標準有効 + findings 検出 |
+| TC-SEC001-02 | GuardDuty Detector 有効 | 脅威検出動作中 |
+| TC-SEC001-03 | Inspector スキャン | EC2 / ECR スキャン結果表示 |
+| TC-SEC001-04 | Config Recorder + ルール | 2ルール評価結果あり |
+| TC-SEC001-05 | IAM Access Analyzer | ACCOUNT タイプ、findings 表示 |
+
+### TC-BR001: Bedrock Agent
+
+| テストID | 検証内容 | 期待結果 |
+|---------|---------|---------|
+| TC-BR001-01 | `invoke-agent` で占い依頼 | Agent が Claude で推論 → Lambda → Backend API 呼び出し → 占い結果返却 |
+| TC-BR001-02 | 対応外の質問 | 適切なガイダンス応答 |
+
+> **Note**: Phase 12 の全テストはインフラ統合テスト（手動 / AWS Console）として実施。
+
+---
+
 ## 6. APIテスト（supertest）
 
 ### TC-API001: 星座占いエンドポイント

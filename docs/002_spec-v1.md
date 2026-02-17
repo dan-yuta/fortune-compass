@@ -43,6 +43,10 @@
 - Docker 化 + AWS EC2 + k3s デプロイ
 - GitHub Actions CI/CD
 - EC2 ライフサイクル管理コンソール（Lambda + Step Functions + API Gateway + S3）
+- CloudFront /admin パス（管理コンソール HTTPS 化 + CF Function リライト）
+- MediaConvert 動画変換パイプライン（S3 → Lambda → MP4+HLS 自動変換）
+- セキュリティ監査（Security Hub / GuardDuty / Inspector / Config / Access Analyzer）
+- Bedrock Agent 対話型占いコンシェルジュ（Claude 3 Haiku + OpenAPI Action Group）
 
 ### 未実装（将来対応）
 - AI総合診断（Claude API連携）

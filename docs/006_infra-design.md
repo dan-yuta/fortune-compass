@@ -126,7 +126,7 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 
 ### 3.6 Terraform モジュール分割
 
-**決定**: 9モジュール構成（networking / ecr / ec2-k3s / cloudfront / management / mediaconvert / security / bedrock）+ k8s マニフェスト。
+**決定**: 8モジュール構成（networking / ecr / ec2-k3s / cloudfront / management / mediaconvert / security / bedrock）+ k8s マニフェスト。
 
 **理由**:
 - ALB / ECS を廃止し、EC2 + k3s に統合したためモジュール数が削減

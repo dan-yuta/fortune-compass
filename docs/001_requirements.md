@@ -217,7 +217,12 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | S3 + DynamoDB | Terraform ステート管理 | < $1 |
 | Lambda + Step Functions + API Gateway | EC2 管理コンソール | $0（無料枠内） |
 | S3（管理コンソール） | 管理画面ホスティング | $0（無料枠内） |
-| **合計** | | **~$13/月**（EC2 停止時は ~$4/月） |
+| MediaConvert | 動画変換（従量課金） | ~$0（変換時のみ） |
+| Security Hub / GuardDuty / Inspector / Config | セキュリティ監査 | ~$5〜10（無料枠終了後） |
+| Bedrock Agent | 対話型占いAI（従量課金） | ~$0（推論時のみ） |
+| EventBridge | MediaConvert ジョブ完了通知 | $0 |
+| CloudFront Function | /admin パスリライト | $0 |
+| **合計** | | **~$19〜24/月**（EC2 停止時は ~$10〜15/月） |
 
 ---
 
@@ -227,7 +232,7 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 
 | Method | Path | 概要 |
 |--------|------|------|
-| GET | `/api/health` | ヘルスチェック（ALB用） |
+| GET | `/api/health` | ヘルスチェック（k3s readiness probe 用） |
 | POST | `/api/fortune/zodiac` | 星座占い |
 | POST | `/api/fortune/numerology` | 数秘術 |
 | POST | `/api/fortune/blood-type` | 血液型占い |
@@ -277,7 +282,7 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 - [x] E2Eテスト（25テスト）
 
 ### Phase 4: インフラ・デプロイ
-- [x] Terraform でAWSインフラ構築（43リソース）
+- [x] Terraform でAWSインフラ構築（~80リソース）
 - [x] Docker 化（マルチステージビルド）
 - [x] ECR push + k3s (EC2) デプロイ
 - [x] CloudFront 追加（HTTPS + CDN）
@@ -317,6 +322,12 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 - [x] EC2 SSM Agent + ECR token refresh systemd サービス
 - [x] Terraform management モジュール（28 リソース追加）
 
+### Phase 12: AWS非コンピュート系サービス拡張
+- [x] CloudFront /admin パス（管理コンソール HTTPS 化 + URL 短縮）
+- [x] MediaConvert（S3 アップロード → MP4+HLS 自動変換）
+- [x] Security（Security Hub / GuardDuty / Inspector / Config / Access Analyzer）
+- [x] Bedrock Agent（対話型占いコンシェルジュ、Claude 3 Haiku）
+
 ### 未実装（将来対応）
 - [ ] AI総合診断（Claude API連携によるテキスト生成）
 - [ ] 今日の運勢バッチ処理
@@ -330,9 +341,12 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 |---------|-------------|
 | Dockerコンテナの基礎 | Dockerfile作成、マルチステージビルド、フロントエンド/バックエンドの2コンテナ構成 |
 | k3s (Kubernetes) でのコンテナデプロイ | Terraform で EC2 作成、k3s + Traefik Ingress でパスベースルーティング |
-| IaC (Terraform) | HCLでのインフラ定義（43リソース）、ステート管理（S3 + DynamoDB）、モジュール分割 |
+| IaC (Terraform) | HCLでのインフラ定義（~80リソース）、ステート管理（S3 + DynamoDB）、モジュール分割 |
 | CI/CD | GitHub ActionsでのDockerビルド → ECRプッシュ → SSH + kubectl デプロイ（OIDC認証） |
 | AI連携 | Claude Vision APIの活用（手相画像解析） |
 | フロントエンド | Next.js App Router、Tailwind CSS v4、Framer Motion、PWA、i18n |
 | サーバーレス | Lambda + Step Functions + API Gateway による EC2 ライフサイクル管理 |
+| セキュリティ監査 | Security Hub / GuardDuty / Inspector / Config / Access Analyzer の有効化と運用 |
+| 動画変換 | MediaConvert + S3 + Lambda + EventBridge による自動変換パイプライン |
+| AI エージェント | Bedrock Agent + Action Group + OpenAPI schema による対話型 AI 構築 |
 | テスト | Jest + Supertest（Backend）、React Testing Library（Frontend）、Playwright（E2E） |
