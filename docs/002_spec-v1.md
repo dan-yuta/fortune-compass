@@ -691,12 +691,12 @@ fortune-compass/
 │       │       └── RadarChart.tsx     # SVGレーダーチャート
 │       └── lib/
 │           ├── types.ts          # 型定義
-│           ├── api-client.ts     # API呼び出し（16占術 + ダッシュボード）
+│           ├── api-client.ts     # API呼び出し（19占術 + ダッシュボード）
 │           ├── storage.ts        # localStorage操作
 │           ├── useFortune.ts     # 占い共通フック（履歴自動保存付き）
 │           ├── kana-to-romaji.ts # カタカナ→ローマ字変換（外来語音対応）
 │           ├── history.ts        # 占い履歴管理（localStorage）
-│           ├── fortune-registry.ts # 占術レジストリ（16占術の定義・メタ情報）
+│           ├── fortune-registry.ts # 占術レジストリ（19占術の定義・メタ情報）
 │           └── i18n/             # 多言語対応 (ja/en)
 ├── backend/
 │   ├── package.json
