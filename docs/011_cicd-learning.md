@@ -699,7 +699,33 @@ k3s は古いコンテナを止めて、新しいコンテナを起動してく�
 > 「古い商品を下げて、新しい商品を並べて」とお願いしているようなものです。
 > k3s は自動で古い商品を片付けて、新しい商品を並べてくれます。
 
-**3. ロールアウトの完了を待つ:**
+**3. ANTHROPIC_API_KEY を Secret から Pod に注入する:**
+
+```bash
+sudo k3s kubectl set env deployment/backend \
+  --from=secret/anthropic-api-key \
+  -n fortune-compass
+```
+
+AI総合鑑定や手相占いで使う Anthropic API キーを、Kubernetes Secret から backend Pod の環境変数として注入します。
+
+この Secret は、デプロイスクリプトの冒頭で以下のように作成されています:
+
+```bash
+sudo k3s kubectl create secret generic anthropic-api-key \
+  --from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -n fortune-compass \
+  --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+```
+
+> **なぜ Secret を使うのか？**
+> API キーは「パスワード」と同じで、コードや設定ファイルに直接書くと漏洩リスクがあります。
+> Kubernetes Secret に保管すれば、`kubectl` コマンドでしかアクセスできず、Git にも残りません。
+>
+> **流れ**: GitHub Secrets → CI/CD の環境変数 → k8s Secret → Pod の環境変数
+> と、安全な経路で API キーが渡されます。
+
+**4. ロールアウトの完了を待つ:**
 
 ```bash
 sudo k3s kubectl rollout status deployment/backend -n fortune-compass --timeout=120s

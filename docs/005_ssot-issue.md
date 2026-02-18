@@ -260,3 +260,5 @@ M5 結合 + 動作確認（20分）
 | 2026-02-17 | M11 追加。Phase 12 AWS非コンピュート系サービス拡張完了。CloudFront /admin, MediaConvert, Security, Bedrock Agent |
 | 2026-02-17 | 関連ドキュメントに 011_cicd-learning.md, 012_kubernetes-learning.md 追加 |
 | 2026-02-18 | M12 追加。Phase 13 占い精度向上（7機能追加）完了。占術数 16→19、月相・立春・天文学的星座・時柱・相性占い・トレンド・AI総合鑑定 |
+| 2026-02-18 | ANTHROPIC_API_KEY を k8s Secret 経由で backend Pod に自動注入する仕組みを追加。deploy.yml に kubectl set env を追加 |
+| 2026-02-18 | API キーローテーション実施。関連ドキュメントに 014_deployment-mechanism.md 追加 |
