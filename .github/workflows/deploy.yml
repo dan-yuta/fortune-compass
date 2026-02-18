@@ -100,6 +100,11 @@ jobs:
               frontend=$ECR_REGISTRY/fortune-compass-dev-frontend:$IMAGE_TAG \
               -n fortune-compass
 
+            # Inject Anthropic API key from secret into backend deployment
+            sudo k3s kubectl set env deployment/backend \
+              --from=secret/anthropic-api-key \
+              -n fortune-compass
+
             # Wait for rollout
             sudo k3s kubectl rollout status deployment/backend -n fortune-compass --timeout=120s
             sudo k3s kubectl rollout status deployment/frontend -n fortune-compass --timeout=120s
