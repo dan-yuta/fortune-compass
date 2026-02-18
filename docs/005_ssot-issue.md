@@ -10,8 +10,8 @@
 | 項目 | 内容 |
 |------|------|
 | プロダクト名 | Fortune Compass |
-| バージョン | v2.2（Phase 12 完了） |
-| 目的 | 16占術（4カテゴリ: 定番・誕生日・伝統・特殊）+ 総合ダッシュボードを提供する総合占いWebアプリ |
+| バージョン | v2.3（Phase 13 完了） |
+| 目的 | 19占術（4カテゴリ: 定番・誕生日・伝統・特殊）+ 総合ダッシュボード + AI総合鑑定を提供する総合占いWebアプリ |
 | 想定作業時間 | 2〜3時間 |
 | 実行環境 | AWS EC2 + k3s（CloudFront 経由） |
 | 技術スタック | Next.js 16.x + Express 5.x + TypeScript + Tailwind CSS v4 |
@@ -220,13 +220,23 @@ M5 結合 + 動作確認（20分）
 | Bedrock Agent（対話型占いコンシェルジュ） | ✅ 完了 | Claude 3 Haiku + OpenAPI Action Group |
 | Terraform 3モジュール追加（mediaconvert / security / bedrock） | ✅ 完了 | 43 added, 2 changed |
 
+### M12: Phase 13 — 占い精度向上（7機能追加）
+| タスク | 状態 | 備考 |
+|--------|------|------|
+| 月相ユーティリティ (moon-phase.ts) | ✅ 完了 | タロット・おみくじ・ルーンに月相ボーナス追加 |
+| 旧暦・二十四節気 (solar-terms.ts) | ✅ 完了 | 九星気学・風水で立春を年の切り替えに使用 |
+| 天文学的黄道十二宮 (astronomical-zodiac.ts) | ✅ 完了 | 太陽黄経による正確な星座判定 |
+| 時柱追加 (shichuu.ts 拡張) | ✅ 完了 | 四柱推命 3柱→4柱化、プロフィールに生まれ時刻・性別追加 |
+| 相性占い (compatibility.ts) | ✅ 完了 | 星座・血液型・数秘の3軸相性診断 |
+| 運勢トレンド (trends.ts) | ✅ 完了 | 7日間折れ線グラフ（SVGベース TrendChart.tsx） |
+| AI総合鑑定 (ai-reading.ts) | ✅ 完了 | Anthropic SDK で全占い結果を統合分析 |
+
 ---
 
 ## 7. スコープ外（将来対応）
 
 以下は今後のフェーズで対応する。
 
-- Claude API連携によるAI総合診断
 - 今日の運勢バッチ処理
 - お気に入り機能
 - ユーザー認証
@@ -249,3 +259,4 @@ M5 結合 + 動作確認（20分）
 | 2026-02-17 | M10 追加。Phase 11 Management Console（EC2 ライフサイクル管理）完了。Terraform 28 リソース追加 |
 | 2026-02-17 | M11 追加。Phase 12 AWS非コンピュート系サービス拡張完了。CloudFront /admin, MediaConvert, Security, Bedrock Agent |
 | 2026-02-17 | 関連ドキュメントに 011_cicd-learning.md, 012_kubernetes-learning.md 追加 |
+| 2026-02-18 | M12 追加。Phase 13 占い精度向上（7機能追加）完了。占術数 16→19、月相・立春・天文学的星座・時柱・相性占い・トレンド・AI総合鑑定 |

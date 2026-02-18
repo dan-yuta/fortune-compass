@@ -33,6 +33,7 @@
 | 23 | IAM Access Analyzer | セキュリティ | IAM ポリシーの外部アクセス分析 | $0 |
 | 24 | Amazon Bedrock Agent | AI | 対話型占い AI コンシェルジュ | 従量課金 |
 | 25 | Amazon EventBridge | イベント | MediaConvert ジョブ完了通知 → CloudWatch Logs | $0 |
+| 26 | Anthropic SDK (外部) | AI | AI総合鑑定サービスで Claude API を直接呼び出し | 従量課金 |
 
 **合計: 約 $19〜24/月**（セキュリティサービスは無料枠終了後課金、MediaConvert/Bedrock は従量課金）
 

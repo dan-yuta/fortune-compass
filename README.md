@@ -1,6 +1,6 @@
 # Fortune Compass
 
-総合占いWebアプリケーション。16の占術を4カテゴリ（定番占い・誕生日占い・伝統占い・特殊占い）で提供し、毎日の運勢を占えます。
+総合占いWebアプリケーション。19の占術を4カテゴリ（定番占い・誕生日占い・伝統占い・特殊占い）で提供し、毎日の運勢を占えます。
 
 ## 関連リンク
 
@@ -65,6 +65,9 @@
 │  │  │ POST /api/fortune/rune        → rune.ts                 │  │  │
 │  │  │ POST /api/fortune/dream       → dream.ts                │  │  │
 │  │  │ POST /api/fortune/palm        → palm.ts                 │  │  │
+│  │  │ POST /api/fortune/compatibility→ compatibility.ts        │  │  │
+│  │  │ POST /api/fortune/trends     → trends.ts               │  │  │
+│  │  │ POST /api/fortune/ai-reading → ai-reading.ts           │  │  │
 │  │  │ POST /api/fortune/dashboard   → dashboard.ts            │  │  │
 │  │  │ GET  /api/health                                        │  │  │
 │  │  └─────────────────────────────────────────────────────────┘  │  │
@@ -161,8 +164,8 @@ fortune-compass/
 │   ├── src/
 │   │   ├── index.ts          #   エントリポイント (:8080)
 │   │   ├── routes/
-│   │   │   └── fortune.ts    #   18エンドポイントのルーティング (16占術+dashboard+health)
-│   │   ├── services/         #   占いロジック (17ファイル)
+│   │   │   └── fortune.ts    #   21エンドポイントのルーティング (19占術+dashboard+health)
+│   │   ├── services/         #   占いロジック (20ファイル)
 │   │   │   ├── zodiac.ts     #     星座占い
 │   │   │   ├── numerology.ts #     数秘術
 │   │   │   ├── blood-type.ts #     血液型占い
@@ -179,8 +182,16 @@ fortune-compass/
 │   │   │   ├── rune.ts       #     ルーン占い
 │   │   │   ├── dream.ts      #     夢占い
 │   │   │   ├── palm.ts       #     手相占い (Claude Vision API)
+│   │   │   ├── compatibility.ts #  相性占い (3軸相性診断)
+│   │   │   ├── trends.ts    #     運勢トレンド (7日間)
+│   │   │   ├── ai-reading.ts #    AI総合鑑定 (Anthropic SDK)
 │   │   │   └── dashboard.ts  #     総合ダッシュボード (定番4占術集約)
-│   │   ├── data/             #   マスターデータ (14ファイル)
+│   │   ├── utils/            #   計算ユーティリティ
+│   │   │   ├── seed-random.ts #    シード付き乱数 (日替わり)
+│   │   │   ├── moon-phase.ts #     月相計算
+│   │   │   ├── solar-terms.ts #    二十四節気・立春計算
+│   │   │   └── astronomical-zodiac.ts # 天文学的星座判定
+│   │   ├── data/             #   マスターデータ (15ファイル)
 │   │   │   ├── zodiac-data.ts
 │   │   │   ├── tarot-cards.ts
 │   │   │   ├── blood-type-data.ts
@@ -194,9 +205,8 @@ fortune-compass/
 │   │   │   ├── fengshui-data.ts
 │   │   │   ├── omikuji-data.ts
 │   │   │   ├── rune-data.ts
-│   │   │   └── dream-data.ts
-│   │   └── utils/
-│   │       └── seed-random.ts #  シード付き乱数 (日替わり)
+│   │   │   ├── dream-data.ts
+│   │   │   └── compatibility-data.ts # 相性テーブル
 │   └── __tests__/            #   テスト (75ケース)
 │       ├── services/
 │       └── routes/
@@ -246,7 +256,10 @@ fortune-compass/
         │       ├── omikuji/      # おみくじ結果
         │       ├── rune/         # ルーン占い結果
         │       ├── dream/        # 夢占い結果
-        │       └── palm/         # 手相占い結果
+        │       ├── palm/         # 手相占い結果
+        │       ├── compatibility/ # 相性占い結果
+        │       ├── trends/       # 運勢トレンド結果
+        │       └── ai-reading/   # AI総合鑑定結果
         ├── components/
         │   ├── Header.tsx
         │   ├── LanguageSwitcher.tsx # 言語切替 (ja/en)
@@ -261,7 +274,8 @@ fortune-compass/
         │       ├── ErrorState.tsx
         │       ├── ResultCard.tsx
         │       ├── RadarChart.tsx     # SVGレーダーチャート
-        │       ├── OtherFortunes.tsx  # 他占術へのショートカット (15占術)
+        │       ├── TrendChart.tsx    # SVG折れ線チャート（7日間）
+        │       ├── OtherFortunes.tsx  # 他占術へのショートカット
         │       └── ShareButtons.tsx   # SNSシェアボタン
         └── lib/
             ├── types.ts          # 型定義
@@ -269,7 +283,7 @@ fortune-compass/
             ├── history.ts        # localStorage管理 (占い履歴)
             ├── api-client.ts     # API呼び出し
             ├── useFortune.ts     # 占い共通フック (結果自動保存)
-            ├── fortune-registry.ts # 16占術メタ情報 (カテゴリ・アイコン・パス)
+            ├── fortune-registry.ts # 19占術メタ情報 (カテゴリ・アイコン・パス)
             ├── kana-to-romaji.ts # カタカナ→ローマ字変換 (外来語対応)
             └── i18n/             # 多言語対応
                 ├── dictionaries.ts # 辞書 (ja/en)
@@ -309,7 +323,7 @@ EC2/Lambda 以外の AWS サービスを体験するための拡張。
 ### 前提条件
 
 - Node.js 20 以上
-- `ANTHROPIC_API_KEY` 環境変数（手相占い用。Claude Vision API を使用）
+- `ANTHROPIC_API_KEY` 環境変数（手相占い・AI総合鑑定用。Claude API を使用）
 
 ### インストール
 
@@ -353,7 +367,7 @@ cd backend && npm run build
 
 | 機能 | 説明 |
 |-----|------|
-| 16占術 (4カテゴリ) | **定番**: 星座占い・数秘術・血液型占い・タロット / **誕生日**: 干支・九星気学・動物占い・誕生花・誕生石・四柱推命・曜日占い・風水 / **伝統**: おみくじ・ルーン / **特殊**: 夢占い・手相占い |
+| 19占術 (4カテゴリ) | **定番**: 星座占い・数秘術・血液型占い・タロット / **誕生日**: 干支・九星気学・動物占い・誕生花・誕生石・四柱推命・曜日占い・風水 / **伝統**: おみくじ・ルーン / **特殊**: 夢占い・手相占い・相性占い・運勢トレンド・AI総合鑑定 |
 | 総合運勢ダッシュボード | 定番4占術一括実行 + レーダーチャート (総合運/恋愛運/仕事運/金運) |
 | SNSシェア | 結果をX(Twitter)/LINE/Facebookでシェア + リンクコピー |
 | 占い履歴 | localStorage に過去の結果を保存・一覧表示 (最大50件) |
@@ -369,7 +383,7 @@ cd backend && npm run build
 
 ## API エンドポイント
 
-`POST` 17エンドポイント + `GET` 1エンドポイント。フロントエンドからは Next.js の rewrites 経由でアクセスします。
+`POST` 20エンドポイント + `GET` 1エンドポイント。フロントエンドからは Next.js の rewrites 経由でアクセスします。
 
 | エンドポイント | リクエストボディ | 説明 |
 |--------------|----------------|------|
@@ -382,13 +396,16 @@ cd backend && npm run build
 | `/api/fortune/animal` | `{ birthday: "YYYY-MM-DD" }` | 動物占い |
 | `/api/fortune/birth-flower` | `{ birthday: "YYYY-MM-DD" }` | 誕生花占い |
 | `/api/fortune/birthstone` | `{ birthday: "YYYY-MM-DD" }` | 誕生石占い |
-| `/api/fortune/shichuu` | `{ birthday: "YYYY-MM-DD" }` | 四柱推命 |
+| `/api/fortune/shichuu` | `{ birthday: "YYYY-MM-DD", birthTime?: "HH:MM" }` | 四柱推命（birthTime指定で時柱追加） |
 | `/api/fortune/weekday` | `{ birthday: "YYYY-MM-DD" }` | 曜日占い |
 | `/api/fortune/fengshui` | `{ birthday: "YYYY-MM-DD", gender?: "male" \| "female" }` | 風水占い |
 | `/api/fortune/omikuji` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI" }` | おみくじ |
 | `/api/fortune/rune` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI" }` | ルーン占い |
 | `/api/fortune/dream` | `{ keyword: "キーワード" }` | 夢占い |
 | `/api/fortune/palm` | `{ image: "base64データ" }` | 手相占い (Claude Vision API) |
+| `/api/fortune/compatibility` | `{ birthday1: "YYYY-MM-DD", birthday2: "YYYY-MM-DD", name1?, name2?, bloodType1?, bloodType2? }` | 相性占い |
+| `/api/fortune/trends` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI", bloodType?: "A" }` | 運勢トレンド（7日間） |
+| `/api/fortune/ai-reading` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI", bloodType?: "A" }` | AI総合鑑定 |
 | `/api/fortune/dashboard` | `{ birthday: "YYYY-MM-DD", name?: "ROMAJI", bloodType?: "A" }` | 総合ダッシュボード |
 | `GET /api/health` | - | ヘルスチェック |
 
@@ -412,6 +429,9 @@ cd backend && npm run build
 | ルーン占い | 24ルーンから3石選択 + 正逆判定 + djb2シード | はい |
 | 夢占い | キーワード完全一致/部分一致検索 + djb2シードスコア | いいえ（キーワード依存） |
 | 手相占い | Claude Vision API による画像解析 | いいえ（毎回異なる） |
+| 相性占い | 星座エレメント相性(40%)+血液型(30%)+数秘(30%) の加重平均 | いいえ（固定） |
+| 運勢トレンド | -3日〜+3日の7日間、4カテゴリ（総合/恋愛/仕事/金運）のスコアを日付シードで算出 | はい |
+| AI総合鑑定 | 全占い結果を統合 → Anthropic SDK (Claude API) で鑑定文生成 | はい |
 
 ## 画面フロー
 
