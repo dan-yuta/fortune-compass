@@ -51,7 +51,7 @@ export default function ShichuuPage() {
 
       <div className="space-y-4">
         <ResultCard title="命式">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className={`grid ${result.hourPillar ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-center`}>
             <div className="bg-twilight rounded-lg p-4 border border-mystic-purple/10">
               <p className="text-xs text-text-muted mb-1">年柱</p>
               <p className="text-lg font-semibold text-text-primary">
@@ -70,7 +70,20 @@ export default function ShichuuPage() {
                 {result.dayPillar}
               </p>
             </div>
+            {result.hourPillar && (
+              <div className="bg-twilight rounded-lg p-4 border border-mystic-purple/10">
+                <p className="text-xs text-text-muted mb-1">時柱</p>
+                <p className="text-lg font-semibold text-text-primary">
+                  {result.hourPillar}
+                </p>
+              </div>
+            )}
           </div>
+          {!result.hourPillar && (
+            <p className="text-text-muted text-xs mt-3 text-center">
+              プロフィールで生まれ時刻を設定すると時柱も表示されます
+            </p>
+          )}
         </ResultCard>
 
         <ResultCard title="今日の運勢">

@@ -19,7 +19,19 @@ import ShareButtons from "@/components/fortune/ShareButtons";
 export default function FengshuiPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [gender, setGender] = useState<"male" | "female">("male");
+  const [gender, setGender] = useState<"male" | "female">(
+    (() => {
+      if (typeof window === "undefined") return "male";
+      try {
+        const data = localStorage.getItem("fortune-compass-profile");
+        if (data) {
+          const p = JSON.parse(data);
+          if (p.gender === "female") return "female";
+        }
+      } catch { /* ignore */ }
+      return "male";
+    })()
+  );
   const [result, setResult] = useState<FengshuiResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -17,6 +17,9 @@ import {
   FengshuiResult,
   DreamResult,
   PalmResult,
+  CompatibilityResult,
+  TrendsResult,
+  AiReadingResult,
 } from "./types";
 
 async function postFortune<T>(
@@ -142,6 +145,7 @@ export async function fetchShichuuFortune(
   return postFortune<ShichuuResult>("shichuu", {
     birthday: profile.birthday,
     name: profile.name,
+    birthTime: profile.birthTime,
   });
 }
 
@@ -170,7 +174,7 @@ export async function fetchFengshuiFortune(
   return postFortune<FengshuiResult>("fengshui", {
     birthday: profile.birthday,
     name: profile.name,
-    gender: gender || "male",
+    gender: gender || profile.gender || "male",
   });
 }
 
@@ -187,5 +191,45 @@ export async function fetchPalmFortune(
 ): Promise<PalmResult> {
   return postFortune<PalmResult>("palm", {
     image,
+  });
+}
+
+export async function fetchCompatibilityFortune(
+  birthday1: string,
+  birthday2: string,
+  name1?: string,
+  name2?: string,
+  bloodType1?: string,
+  bloodType2?: string,
+): Promise<CompatibilityResult> {
+  return postFortune<CompatibilityResult>("compatibility", {
+    birthday1,
+    birthday2,
+    name1,
+    name2,
+    bloodType1,
+    bloodType2,
+  });
+}
+
+export async function fetchTrendsFortune(
+  profile: UserProfile
+): Promise<TrendsResult> {
+  return postFortune<TrendsResult>("trends", {
+    birthday: profile.birthday,
+    name: profile.nameRomaji,
+    bloodType: profile.bloodType,
+  });
+}
+
+export async function fetchAiReadingFortune(
+  profile: UserProfile
+): Promise<AiReadingResult> {
+  return postFortune<AiReadingResult>("ai-reading", {
+    birthday: profile.birthday,
+    name: profile.nameRomaji,
+    bloodType: profile.bloodType,
+    birthTime: profile.birthTime,
+    gender: profile.gender,
   });
 }

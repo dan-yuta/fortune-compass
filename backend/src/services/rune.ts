@@ -1,5 +1,6 @@
 import { runes, runeMessages } from '../data/rune-data';
 import { getDateSeed, seededRandom, seededChoice } from '../utils/seed-random';
+import { getMoonPhase } from '../utils/moon-phase';
 
 export interface RuneStone {
   name: string;
@@ -14,6 +15,7 @@ export interface RuneResult {
   fortuneType: 'rune';
   stones: RuneStone[];
   overallMessage: string;
+  moonPhase?: string;
 }
 
 export function getRuneFortune(birthday: string, name: string): RuneResult {
@@ -51,9 +53,22 @@ export function getRuneFortune(birthday: string, name: string): RuneResult {
     };
   });
 
+  let overallMessage = seededChoice(`${baseSeed}-message`, runeMessages);
+
+  // Moon phase message
+  const moonInfo = getMoonPhase(new Date());
+  if (moonInfo.phaseEn === 'full_moon') {
+    overallMessage += `\n\n${moonInfo.phase}の力がルーンの啓示を増幅させています。直感を信じて行動しましょう。`;
+  } else if (moonInfo.phaseEn === 'new_moon') {
+    overallMessage += `\n\n${moonInfo.phase}の静寂がルーンの深い意味を浮かび上がらせています。内なる声に耳を傾けてください。`;
+  } else {
+    overallMessage += `\n\n${moonInfo.phase}のエネルギーがルーンのメッセージに穏やかな力を添えています。`;
+  }
+
   return {
     fortuneType: 'rune',
     stones,
-    overallMessage: seededChoice(`${baseSeed}-message`, runeMessages),
+    overallMessage,
+    moonPhase: moonInfo.phase,
   };
 }

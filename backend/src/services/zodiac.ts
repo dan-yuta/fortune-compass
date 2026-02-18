@@ -1,5 +1,6 @@
 import { zodiacSigns, luckyColors, luckyItems, zodiacAdvice, ZodiacSign } from '../data/zodiac-data';
 import { getDateSeed, seededChoice, seededScore } from '../utils/seed-random';
+import { getAstronomicalSign } from '../utils/astronomical-zodiac';
 
 export interface ZodiacResult {
   fortuneType: 'zodiac';
@@ -10,6 +11,8 @@ export interface ZodiacResult {
   luckyColor: string;
   luckyItem: string;
   advice: string;
+  astronomicalSign?: string;
+  astronomicalSignEn?: string;
 }
 
 function findZodiacSign(month: number, day: number): ZodiacSign {
@@ -44,6 +47,10 @@ export function getZodiacFortune(birthday: string): ZodiacResult {
   const dateSeed = getDateSeed();
   const baseSeed = `${dateSeed}-${sign.signEn}`;
 
+  // Astronomical zodiac calculation
+  const astroSign = getAstronomicalSign(date);
+  const isDifferent = astroSign.signEn !== sign.signEn;
+
   return {
     fortuneType: 'zodiac',
     sign: sign.sign,
@@ -53,5 +60,7 @@ export function getZodiacFortune(birthday: string): ZodiacResult {
     luckyColor: seededChoice(`${baseSeed}-color`, luckyColors),
     luckyItem: seededChoice(`${baseSeed}-item`, luckyItems),
     advice: seededChoice(`${baseSeed}-advice`, zodiacAdvice),
+    astronomicalSign: isDifferent ? astroSign.sign : undefined,
+    astronomicalSignEn: isDifferent ? astroSign.signEn : undefined,
   };
 }

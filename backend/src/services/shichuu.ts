@@ -6,6 +6,7 @@ export interface ShichuuResult {
   yearPillar: string;
   monthPillar: string;
   dayPillar: string;
+  hourPillar?: string;
   dayMaster: string;
   element: string;
   personality: string;
@@ -43,7 +44,20 @@ function getDayPillar(year: number, month: number, day: number): string {
   return tenkan[(tenkanIndex + 10) % 10] + chishi[(chishiIndex + 12) % 12];
 }
 
-export function getShichuuFortune(birthday: string): ShichuuResult {
+/**
+ * Calculate the hour pillar (時柱) from day tenkan index and hour.
+ * Hour branch: 23-1=子, 1-3=丑, 3-5=寅, ... (2-hour intervals)
+ * Hour stem: derived from day stem using the formula: (dayTenkanIndex % 5) * 2 + hourBranchIndex
+ */
+function getHourPillar(dayTenkanIndex: number, hour: number): string {
+  // Map hour to branch index (子=0, 丑=1, ..., 亥=11)
+  // 23:00-00:59=子(0), 01:00-02:59=丑(1), ..., 21:00-22:59=亥(11)
+  const hourBranchIndex = hour === 23 ? 0 : Math.floor((hour + 1) / 2);
+  const hourTenkanIndex = ((dayTenkanIndex % 5) * 2 + hourBranchIndex) % 10;
+  return tenkan[hourTenkanIndex] + chishi[hourBranchIndex];
+}
+
+export function getShichuuFortune(birthday: string, birthTime?: string): ShichuuResult {
   const date = new Date(birthday);
   if (isNaN(date.getTime())) {
     throw new Error('Invalid birthday format');
@@ -67,6 +81,18 @@ export function getShichuuFortune(birthday: string): ShichuuResult {
   const dayTenkanIndex = ((dayCycle % 10) + 10) % 10;
   const dayMasterInfo = dayMasterData[dayTenkanIndex];
 
+  // Calculate hour pillar if birthTime is provided
+  let hourPillar: string | undefined;
+  if (birthTime) {
+    const timeParts = birthTime.split(':');
+    if (timeParts.length >= 2) {
+      const hour = parseInt(timeParts[0], 10);
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        hourPillar = getHourPillar(dayTenkanIndex, hour);
+      }
+    }
+  }
+
   const dateSeed = getDateSeed();
   const baseSeed = `${dateSeed}-shichuu-${dayMasterInfo.tenkan}`;
 
@@ -75,6 +101,7 @@ export function getShichuuFortune(birthday: string): ShichuuResult {
     yearPillar,
     monthPillar,
     dayPillar,
+    hourPillar,
     dayMaster: `${dayMasterInfo.tenkan}（${dayMasterInfo.yinYang}の${dayMasterInfo.element}）`,
     element: dayMasterInfo.element,
     personality: dayMasterInfo.personality,

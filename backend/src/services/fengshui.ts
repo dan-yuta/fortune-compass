@@ -1,5 +1,6 @@
 import { guaData, calculateGuaNumber, fengshuiAdvice } from '../data/fengshui-data';
 import { getDateSeed, seededChoice, seededScore } from '../utils/seed-random';
+import { getFengshuiYear } from '../utils/solar-terms';
 
 export interface FengshuiResult {
   fortuneType: 'fengshui';
@@ -10,6 +11,7 @@ export interface FengshuiResult {
   unluckyDirections: string[];
   score: number;
   advice: string;
+  isBeforeLichun?: boolean;
 }
 
 export function getFengshuiFortune(birthday: string, gender: 'male' | 'female'): FengshuiResult {
@@ -18,8 +20,11 @@ export function getFengshuiFortune(birthday: string, gender: 'male' | 'female'):
     throw new Error('Invalid birthday format');
   }
 
-  const year = date.getUTCFullYear();
-  const guaNumber = calculateGuaNumber(year, gender);
+  const gregorianYear = date.getUTCFullYear();
+  const fengshuiYear = getFengshuiYear(date);
+  const isBeforeLichun = fengshuiYear < gregorianYear;
+
+  const guaNumber = calculateGuaNumber(fengshuiYear, gender);
   const guaInfo = guaData.find(g => g.guaNumber === guaNumber);
 
   if (!guaInfo) {
@@ -38,5 +43,6 @@ export function getFengshuiFortune(birthday: string, gender: 'male' | 'female'):
     unluckyDirections: guaInfo.unluckyDirections,
     score: seededScore(`${baseSeed}-score`),
     advice: seededChoice(`${baseSeed}-advice`, fengshuiAdvice),
+    isBeforeLichun: isBeforeLichun || undefined,
   };
 }

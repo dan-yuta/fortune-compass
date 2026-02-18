@@ -1,4 +1,5 @@
 import { majorArcana, overallMessages, TarotCardData } from '../data/tarot-cards';
+import { getMoonPhase } from '../utils/moon-phase';
 
 export interface TarotCardResult {
   position: string;
@@ -17,6 +18,7 @@ export interface TarotResult {
   spread: 'three-card';
   cards: TarotCardResult[];
   overallMessage: string;
+  moonPhase?: string;
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -50,12 +52,28 @@ export function getTarotFortune(): TarotResult {
     reversedMeaning: card.reversedMeaning,
   }));
 
-  const overallMessage = overallMessages[Math.floor(Math.random() * overallMessages.length)];
+  let overallMessage = overallMessages[Math.floor(Math.random() * overallMessages.length)];
+
+  // Moon phase bonus
+  const moonInfo = getMoonPhase(new Date());
+  let moonMessage = '';
+  if (moonInfo.phaseEn === 'full_moon') {
+    moonMessage = `${moonInfo.phase}の夜 - 直感力が最大限に高まっています。ポジティブなカードの影響がより強く現れるでしょう。`;
+  } else if (moonInfo.phaseEn === 'new_moon') {
+    moonMessage = `${moonInfo.phase}の夜 - 内省の力が強まっています。逆位置のカードからより深い気づきが得られるでしょう。`;
+  } else if (moonInfo.phaseEn === 'first_quarter' || moonInfo.phaseEn === 'waxing_crescent' || moonInfo.phaseEn === 'waxing_gibbous') {
+    moonMessage = `${moonInfo.phase}の夜 - 月の満ちる力が後押ししています。前向きな行動が吉です。`;
+  } else {
+    moonMessage = `${moonInfo.phase}の夜 - 月の静かなエネルギーが内面を照らしています。振り返りの時期です。`;
+  }
+
+  overallMessage = `${overallMessage}\n\n${moonMessage}`;
 
   return {
     fortuneType: 'tarot',
     spread: 'three-card',
     cards,
     overallMessage,
+    moonPhase: moonInfo.phase,
   };
 }

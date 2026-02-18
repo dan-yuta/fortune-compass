@@ -47,6 +47,11 @@ export default function ZodiacPage() {
         <p className="text-text-secondary">
           {result.sign}（{result.signEn}）・{result.element}
         </p>
+        {result.astronomicalSign && (
+          <p className="text-text-muted text-sm mt-1">
+            天文学的黄道十二宮: {result.astronomicalSign}（{result.astronomicalSignEn}）
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">

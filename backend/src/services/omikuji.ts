@@ -9,6 +9,7 @@ import {
   omikujiMessages,
 } from '../data/omikuji-data';
 import { getDateSeed, seededRandom, seededChoice } from '../utils/seed-random';
+import { getMoonPhase } from '../utils/moon-phase';
 
 export interface OmikujiResult {
   fortuneType: 'omikuji';
@@ -21,14 +22,26 @@ export interface OmikujiResult {
   money: string;
   travel: string;
   overallMessage: string;
+  moonPhase?: string;
 }
 
 export function getOmikujiFortune(birthday: string, name: string): OmikujiResult {
   const dateSeed = getDateSeed();
   const baseSeed = `${dateSeed}-omikuji-${birthday}-${name}`;
 
-  // Weighted random for rank selection (大吉 is rarer than 中吉 etc.)
-  const weights = [10, 20, 25, 20, 15, 7, 3]; // 大吉, 吉, 中吉, 小吉, 末吉, 凶, 大凶
+  // Moon phase adjusts weights
+  const moonInfo = getMoonPhase(new Date());
+  let weights: number[];
+  if (moonInfo.phaseEn === 'full_moon') {
+    // Full moon: increase 大吉, decrease 凶系
+    weights = [15, 22, 25, 20, 13, 4, 1]; // 大吉, 吉, 中吉, 小吉, 末吉, 凶, 大凶
+  } else if (moonInfo.phaseEn === 'new_moon') {
+    // New moon: more even distribution (introspective)
+    weights = [12, 16, 18, 18, 16, 12, 8]; // 大吉, 吉, 中吉, 小吉, 末吉, 凶, 大凶
+  } else {
+    // Default weights
+    weights = [10, 20, 25, 20, 15, 7, 3]; // 大吉, 吉, 中吉, 小吉, 末吉, 凶, 大凶
+  }
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   const rand = seededRandom(`${baseSeed}-rank`) * totalWeight;
   let cumulative = 0;
@@ -54,5 +67,6 @@ export function getOmikujiFortune(birthday: string, name: string): OmikujiResult
     money: seededChoice(`${baseSeed}-money`, omikujiMoney),
     travel: seededChoice(`${baseSeed}-travel`, omikujiTravel),
     overallMessage: seededChoice(`${baseSeed}-message`, omikujiMessages),
+    moonPhase: moonInfo.phase,
   };
 }

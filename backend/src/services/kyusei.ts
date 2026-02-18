@@ -1,5 +1,6 @@
 import { kyuseiStars, kyuseiDirections, kyuseiAdvice } from '../data/kyusei-data';
 import { getDateSeed, seededChoice, seededScore } from '../utils/seed-random';
+import { getKyuseiYear } from '../utils/solar-terms';
 
 export interface KyuseiResult {
   fortuneType: 'kyusei';
@@ -9,6 +10,7 @@ export interface KyuseiResult {
   score: number;
   luckyDirection: string;
   advice: string;
+  isBeforeLichun?: boolean;
 }
 
 function getKyuseiIndex(year: number): number {
@@ -22,8 +24,11 @@ export function getKyuseiFortune(birthday: string): KyuseiResult {
     throw new Error('Invalid birthday format');
   }
 
-  const year = date.getUTCFullYear();
-  const index = getKyuseiIndex(year);
+  const gregorianYear = date.getUTCFullYear();
+  const kyuseiYear = getKyuseiYear(date);
+  const isBeforeLichun = kyuseiYear < gregorianYear;
+
+  const index = getKyuseiIndex(kyuseiYear);
   const star = kyuseiStars[index];
 
   const dateSeed = getDateSeed();
@@ -37,5 +42,6 @@ export function getKyuseiFortune(birthday: string): KyuseiResult {
     score: seededScore(`${baseSeed}-score`),
     luckyDirection: kyuseiDirections[index],
     advice: seededChoice(`${baseSeed}-advice`, kyuseiAdvice),
+    isBeforeLichun: isBeforeLichun || undefined,
   };
 }

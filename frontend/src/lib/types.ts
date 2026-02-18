@@ -4,6 +4,8 @@ export interface UserProfile {
   nameRomaji: string;
   birthday: string;
   bloodType: string | null;
+  birthTime?: string;
+  gender?: 'male' | 'female';
 }
 
 export interface ZodiacResult {
@@ -15,6 +17,8 @@ export interface ZodiacResult {
   luckyColor: string;
   luckyItem: string;
   advice: string;
+  astronomicalSign?: string;
+  astronomicalSignEn?: string;
 }
 
 export interface NumerologyResult {
@@ -52,6 +56,7 @@ export interface TarotResult {
   spread: string;
   cards: TarotCard[];
   overallMessage: string;
+  moonPhase?: string;
 }
 
 export interface RadarScores {
@@ -120,6 +125,7 @@ export interface KyuseiResult {
   score: number;
   luckyDirection: string;
   advice: string;
+  isBeforeLichun?: boolean;
 }
 
 export interface AnimalResult {
@@ -140,6 +146,7 @@ export interface ShichuuResult {
   yearPillar: string;
   monthPillar: string;
   dayPillar: string;
+  hourPillar?: string;
   dayMaster: string;
   element: string;
   personality: string;
@@ -158,6 +165,7 @@ export interface OmikujiResult {
   money: string;
   travel: string;
   overallMessage: string;
+  moonPhase?: string;
 }
 
 export interface RuneStone {
@@ -173,6 +181,7 @@ export interface RuneResult {
   fortuneType: "rune";
   stones: RuneStone[];
   overallMessage: string;
+  moonPhase?: string;
 }
 
 export interface FengshuiResult {
@@ -184,6 +193,7 @@ export interface FengshuiResult {
   unluckyDirections: string[];
   score: number;
   advice: string;
+  isBeforeLichun?: boolean;
 }
 
 export interface DreamResult {
@@ -203,4 +213,41 @@ export interface PalmResult {
   heartLine: string;
   fateLine: string;
   overallMessage: string;
+}
+
+export interface CompatibilityResult {
+  fortuneType: "compatibility";
+  overallScore: number;
+  zodiacScore: number;
+  bloodTypeScore: number | null;
+  numerologyScore: number;
+  person1Sign: string;
+  person2Sign: string;
+  advice: string;
+  detailMessage: string;
+}
+
+export interface TrendDay {
+  date: string;
+  dayLabel: string;
+  overall: number;
+  love: number;
+  work: number;
+  money: number;
+}
+
+export interface TrendsResult {
+  fortuneType: "trends";
+  days: TrendDay[];
+  bestDay: string;
+  worstDay: string;
+  advice: string;
+}
+
+export interface AiReadingResult {
+  fortuneType: "ai-reading";
+  reading: string;
+  highlights: string[];
+  luckyAction: string;
+  includedFortunes: string[];
 }

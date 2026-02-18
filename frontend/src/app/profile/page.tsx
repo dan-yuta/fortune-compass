@@ -45,6 +45,9 @@ export default function ProfilePage() {
   const [birthMonth, setBirthMonth] = useState(parseBirthdayPart(existing?.birthday, 1));
   const [birthDay, setBirthDay] = useState(parseBirthdayPart(existing?.birthday, 2));
   const [bloodType, setBloodType] = useState<string | null>(existing?.bloodType ?? null);
+  const [birthHour, setBirthHour] = useState(existing?.birthTime ? existing.birthTime.split(":")[0] : "");
+  const [birthMinute, setBirthMinute] = useState(existing?.birthTime ? existing.birthTime.split(":")[1] : "");
+  const [gender, setGender] = useState<"male" | "female" | "">(existing?.gender ?? "");
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -109,12 +112,16 @@ export default function ProfilePage() {
     const birthday = `${birthYear}-${String(Number(birthMonth)).padStart(2, "0")}-${String(Number(birthDay)).padStart(2, "0")}`;
     const nameRomaji = kanaToRomaji(nameKana.trim());
 
+    const birthTime = birthHour && birthMinute ? `${birthHour.padStart(2, "0")}:${birthMinute.padStart(2, "0")}` : undefined;
+
     const profile: UserProfile = {
       name: name.trim(),
       nameKana: nameKana.trim(),
       nameRomaji,
       birthday,
       bloodType,
+      birthTime,
+      gender: gender || undefined,
     };
 
     saveProfile(profile);
@@ -296,6 +303,86 @@ export default function ProfilePage() {
                 {type}
               </button>
             ))}
+          </div>
+        </fieldset>
+
+        {/* Birth Time field */}
+        <fieldset>
+          <legend className="block text-sm font-medium text-text-primary mb-2">
+            生まれ時刻（任意）
+          </legend>
+          <p className="text-text-muted text-xs mb-2">
+            四柱推命の時柱計算に使用します
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="birthHour" className="sr-only">時</label>
+              <select
+                id="birthHour"
+                value={birthHour}
+                onChange={(e) => setBirthHour(e.target.value)}
+                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 transition-colors duration-200 appearance-none"
+              >
+                <option value="" className="text-text-muted">時</option>
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={String(i)}>
+                    {i}時
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="birthMinute" className="sr-only">分</label>
+              <select
+                id="birthMinute"
+                value={birthMinute}
+                onChange={(e) => setBirthMinute(e.target.value)}
+                className="w-full bg-twilight border border-mystic-purple/20 rounded-lg px-3 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 transition-colors duration-200 appearance-none"
+              >
+                <option value="" className="text-text-muted">分</option>
+                {Array.from({ length: 60 }, (_, i) => (
+                  <option key={i} value={String(i)}>
+                    {i}分
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        {/* Gender field */}
+        <fieldset>
+          <legend className="block text-sm font-medium text-text-primary mb-2">
+            性別（任意）
+          </legend>
+          <p className="text-text-muted text-xs mb-2">
+            風水占いの本命卦計算に使用します
+          </p>
+          <div className="flex gap-3" role="group" aria-label="性別選択">
+            <button
+              type="button"
+              onClick={() => setGender(gender === "male" ? "" : "male")}
+              aria-pressed={gender === "male"}
+              className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 ${
+                gender === "male"
+                  ? "bg-mystic-purple text-white border-mystic-purple"
+                  : "bg-twilight text-text-secondary border-mystic-purple/20 hover:border-mystic-purple/40"
+              }`}
+            >
+              男性
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender(gender === "female" ? "" : "female")}
+              aria-pressed={gender === "female"}
+              className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-mystic-purple/60 ${
+                gender === "female"
+                  ? "bg-mystic-purple text-white border-mystic-purple"
+                  : "bg-twilight text-text-secondary border-mystic-purple/20 hover:border-mystic-purple/40"
+              }`}
+            >
+              女性
+            </button>
           </div>
         </fieldset>
 
