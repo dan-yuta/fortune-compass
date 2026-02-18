@@ -70,12 +70,19 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,IMAGE_TAG,AWS_REGION
+          envs: ECR_REGISTRY,IMAGE_TAG,AWS_REGION,ANTHROPIC_API_KEY
           script: |
+            # Create/update Anthropic API key secret
+            sudo k3s kubectl create secret generic anthropic-api-key \
+              --from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+              -n fortune-compass \
+              --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+
             # Refresh ECR pull secret
             TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
             sudo k3s kubectl create secret docker-registry ecr-secret \

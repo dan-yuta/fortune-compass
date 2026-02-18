@@ -106,6 +106,12 @@ spec:
               value: "8080"
             - name: CORS_ORIGIN
               value: "*"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic-api-key
+                  key: ANTHROPIC_API_KEY
+                  optional: true
           readinessProbe:
             httpGet:
               path: /api/health
