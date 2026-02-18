@@ -16,6 +16,9 @@ import { getRuneFortune } from '../services/rune';
 import { getFengshuiFortune } from '../services/fengshui';
 import { getDreamFortune } from '../services/dream';
 import { getPalmFortune } from '../services/palm';
+import { getCompatibilityFortune } from '../services/compatibility';
+import { getTrendsFortune } from '../services/trends';
+import { getAiReadingFortune } from '../services/ai-reading';
 
 const router = Router();
 
@@ -174,7 +177,7 @@ router.post('/shichuu', (req: Request, res: Response) => {
   try {
     const err = validateBirthday(req.body.birthday);
     if (err) { res.status(400).json({ error: err }); return; }
-    const result = getShichuuFortune(req.body.birthday);
+    const result = getShichuuFortune(req.body.birthday, req.body.birthTime);
     res.json(result);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal server error';
@@ -242,6 +245,61 @@ router.post('/palm', async (req: Request, res: Response) => {
       return;
     }
     const result = await getPalmFortune(image);
+    res.json(result);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+router.post('/compatibility', (req: Request, res: Response) => {
+  try {
+    const err1 = validateBirthday(req.body.birthday1);
+    if (err1) { res.status(400).json({ error: 'birthday1: ' + err1 }); return; }
+    const err2 = validateBirthday(req.body.birthday2);
+    if (err2) { res.status(400).json({ error: 'birthday2: ' + err2 }); return; }
+    const result = getCompatibilityFortune(
+      req.body.birthday1,
+      req.body.birthday2,
+      req.body.name1,
+      req.body.name2,
+      req.body.bloodType1,
+      req.body.bloodType2,
+    );
+    res.json(result);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+router.post('/trends', (req: Request, res: Response) => {
+  try {
+    const err = validateBirthday(req.body.birthday);
+    if (err) { res.status(400).json({ error: err }); return; }
+    const result = getTrendsFortune(req.body.birthday, req.body.name, req.body.bloodType);
+    res.json(result);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+router.post('/ai-reading', async (req: Request, res: Response) => {
+  try {
+    const err = validateBirthday(req.body.birthday);
+    if (err) { res.status(400).json({ error: err }); return; }
+    if (!req.body.name || typeof req.body.name !== 'string') {
+      res.status(400).json({ error: 'name is required' });
+      return;
+    }
+    const result = await getAiReadingFortune(
+      req.body.birthday,
+      req.body.name,
+      req.body.bloodType,
+      req.body.birthTime,
+      req.body.gender,
+    );
     res.json(result);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Internal server error';

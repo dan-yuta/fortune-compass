@@ -15,6 +15,9 @@ import {
   FengshuiResult,
   DreamResult,
   PalmResult,
+  CompatibilityResult,
+  TrendsResult,
+  AiReadingResult,
 } from "./types";
 
 export type FortuneResult =
@@ -33,7 +36,10 @@ export type FortuneResult =
   | RuneResult
   | FengshuiResult
   | DreamResult
-  | PalmResult;
+  | PalmResult
+  | CompatibilityResult
+  | TrendsResult
+  | AiReadingResult;
 
 export interface HistoryEntry {
   id: string;
@@ -119,6 +125,12 @@ function getLabel(result: FortuneResult): string {
       return `夢占い - ${result.keyword}`;
     case "palm":
       return `手相占い`;
+    case "compatibility":
+      return `相性占い - ${result.person1Sign}×${result.person2Sign}`;
+    case "trends":
+      return `運勢トレンド - ベスト:${result.bestDay}`;
+    case "ai-reading":
+      return `AI総合鑑定`;
     default:
       return "占い結果";
   }

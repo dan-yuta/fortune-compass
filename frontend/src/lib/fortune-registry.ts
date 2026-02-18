@@ -15,6 +15,9 @@ import {
   Hand,
   Dice5,
   Shield,
+  Heart,
+  TrendingUp,
+  Brain,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -67,6 +70,9 @@ export const fortuneRegistry: FortuneMeta[] = [
   // 特殊占い
   { id: "dream", label: "夢占い", icon: Eye, category: "special", path: "/fortune/dream", description: "夢のキーワードから深層心理と運勢を読み解きます" },
   { id: "palm", label: "手相占い", icon: Hand, category: "special", path: "/fortune/palm", description: "手のひらの写真からAIが手相を分析します" },
+  { id: "compatibility", label: "相性占い", icon: Heart, category: "special", path: "/fortune/compatibility", description: "二人の星座・血液型・数秘から相性を多角的に診断します" },
+  { id: "trends", label: "運勢トレンド", icon: TrendingUp, category: "special", path: "/fortune/trends", description: "7日間の運勢推移を折れ線グラフで可視化します" },
+  { id: "ai-reading", label: "AI総合鑑定", icon: Brain, category: "special", path: "/fortune/ai-reading", description: "複数の占いを統合しAIが総合鑑定文を生成します" },
 ];
 
 export function getFortuneById(id: string): FortuneMeta | undefined {
