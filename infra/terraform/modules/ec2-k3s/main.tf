@@ -151,4 +151,8 @@ resource "aws_instance" "k3s" {
   tags = {
     Name = "${local.name_prefix}-k3s"
   }
+
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
