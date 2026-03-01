@@ -3,6 +3,10 @@ name: Deploy to k3s
 on:
   push:
     branches: [master]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
