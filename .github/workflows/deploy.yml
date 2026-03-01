@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -68,7 +69,20 @@ jobs:
             frontend/
           docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend --all-tags
 
+      - name: Check EC2 instance state
+        id: ec2-check
+        run: |
+          STATE=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-k3s" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          if [ "$STATE" != "running" ]; then
+            echo "::warning::EC2 instance is $STATE — skipping deploy. Images were pushed to ECR and will be used on next startup."
+          fi
+
       - name: Deploy to k3s via SSH
+        if: steps.ec2-check.outputs.state == 'running'
         uses: appleboy/ssh-action@v1
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
