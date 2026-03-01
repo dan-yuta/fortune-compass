@@ -102,59 +102,6 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 # =============================================================================
-# IAM — Step Functions execution role
-# =============================================================================
-
-resource "aws_iam_role" "step_functions" {
-  name = "${local.name_prefix}-sfn-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "states.amazonaws.com" }
-      Action    = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "step_functions" {
-  name = "${local.name_prefix}-sfn-policy"
-  role = aws_iam_role.step_functions.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
-      Resource = aws_lambda_function.ec2_manager.arn
-    }]
-  })
-}
-
-# =============================================================================
-# Step Functions — Start & Stop state machines
-# =============================================================================
-
-resource "aws_sfn_state_machine" "start" {
-  name     = "${local.name_prefix}-ec2-start"
-  role_arn = aws_iam_role.step_functions.arn
-
-  definition = templatefile("${path.module}/step_functions_start.asl.json", {
-    lambda_arn = aws_lambda_function.ec2_manager.arn
-  })
-}
-
-resource "aws_sfn_state_machine" "stop" {
-  name     = "${local.name_prefix}-ec2-stop"
-  role_arn = aws_iam_role.step_functions.arn
-
-  definition = templatefile("${path.module}/step_functions_stop.asl.json", {
-    lambda_arn = aws_lambda_function.ec2_manager.arn
-  })
-}
-
-# =============================================================================
 # API Gateway — REST API with API Key
 # =============================================================================
 

@@ -132,7 +132,7 @@ IaC には Terraform、CI/CD には GitHub Actions を採用する。
 - ALB / ECS を廃止し、EC2 + k3s に統合したためモジュール数が削減
 - k8s マニフェスト（Deployment, Service, Ingress）は Terraform 外で管理
 - 環境追加（staging / production）時にモジュールを再利用可能
-- management モジュールで EC2 ライフサイクル管理（Lambda, Step Functions, API Gateway, S3）を追加
+- management モジュールで EC2 ライフサイクル管理（Lambda, API Gateway, S3）を追加
 - Phase 12 で非コンピュート系 AWS サービス（MediaConvert / Security / Bedrock）を追加
 
 ---
@@ -303,7 +303,7 @@ infra/terraform/
 │   ├── ecr/            ECR リポジトリ x2, ライフサイクルポリシー
 │   ├── ec2-k3s/        EC2, SG, Key Pair, User Data (k3s install)
 │   ├── cloudfront/     CloudFront Distribution, Cache Behaviors, CF Function (/admin)
-│   ├── management/     Lambda, Step Functions, API Gateway, S3 (管理コンソール)
+│   ├── management/     Lambda, API Gateway, S3 (管理コンソール)
 │   ├── mediaconvert/   S3 x2, Lambda, MediaConvert, EventBridge (動画変換)
 │   ├── security/       Security Hub, GuardDuty, Inspector, Config, Access Analyzer
 │   └── bedrock/        Bedrock Agent, Lambda (fortune-bridge), OpenAPI Schema
@@ -325,7 +325,7 @@ infra/terraform/
 | ecr | 4 | ECR Repository x2, Lifecycle Policy x2 |
 | ec2-k3s | 4 | EC2 Instance, SG, Key Pair, EBS Volume |
 | cloudfront | ~3 | CloudFront Distribution, CF Function (admin_rewrite) |
-| management | 28 | Lambda, Step Functions x2, API Gateway, S3, IAM Role/Policy 等 |
+| management | 24 | Lambda, API Gateway, S3, IAM Role/Policy 等 |
 | mediaconvert | ~12 | S3 x2, Lambda, IAM Role x2, S3 Notification, EventBridge, CloudWatch |
 | security | ~13 | Security Hub, GuardDuty, Inspector, Config Recorder/Channel/Rules, S3, IAM, Access Analyzer |
 | bedrock | ~9 | Bedrock Agent, Agent Action Group, Agent Alias, Lambda, IAM Role x2 |
@@ -466,7 +466,7 @@ kubectl set image deployment/backend backend=<ECR_URI>:<previous_git_sha>
 ### 12.1 概要
 
 EC2 インスタンスを使用しないときに停止し、コンピュートコストを削減するための管理コンソール。
-Lambda + Step Functions で EC2 の起動・停止ワークフローを実装し、S3 静的ウェブサイトで管理画面を提供する。
+Lambda + API Gateway で EC2 の起動・停止を実装し、S3 静的ウェブサイトで管理画面を提供する。
 
 ### 12.2 アーキテクチャ
 
@@ -481,11 +481,6 @@ Lambda + Step Functions で EC2 の起動・停止ワークフローを実装し
           ┌───────────▼───────────┐
           │  API Gateway          │  ← REST API
           │  /prod/manage         │
-          └───────────┬───────────┘
-                      │
-          ┌───────────▼───────────┐
-          │  Step Functions       │  ← start / stop ワークフロー
-          │  (State Machine x2)   │
           └───────────┬───────────┘
                       │
           ┌───────────▼───────────┐
@@ -504,9 +499,7 @@ Lambda + Step Functions で EC2 の起動・停止ワークフローを実装し
 | コンポーネント | 説明 |
 |--------------|------|
 | Lambda (Python 3.12) | EC2 start/stop/status/health-check/ECR token refresh を実行 |
-| Step Functions (start) | EC2 起動 → ステータス確認待ち → ヘルスチェック → ECR トークンリフレッシュ |
-| Step Functions (stop) | EC2 停止 → ステータス確認待ち |
-| API Gateway | REST API（API Key 認証）で Step Functions / Lambda を呼び出し |
+| API Gateway | REST API（API Key 認証）で Lambda を呼び出し |
 | S3 Static Website | 管理コンソール UI（HTML/CSS/JS） |
 | SSM Agent (EC2) | Lambda からのリモートコマンド実行（ECR トークンリフレッシュ等） |
 | ECR token refresh (systemd) | EC2 起動時に自動で ECR 認証トークンを更新する systemd サービス |
@@ -520,7 +513,7 @@ Lambda + Step Functions で EC2 の起動・停止ワークフローを実装し
 
 ### 12.5 コスト影響
 
-すべての新サービス（Lambda, Step Functions, API Gateway, S3）は AWS 無料枠内で運用可能（追加コスト $0）。
+すべての新サービス（Lambda, API Gateway, S3）は AWS 無料枠内で運用可能（追加コスト $0）。
 EC2 を未使用時に停止することで、コンピュートコスト（~$9/月）をアイドル期間中ほぼ $0 に削減可能。
 
 ---

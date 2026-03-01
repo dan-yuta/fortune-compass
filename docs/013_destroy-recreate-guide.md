@@ -143,7 +143,7 @@ ls /home/dangi/work/my-project/fortune-compass/infra/terraform/environments/dev/
 ✗ CloudFront ディストリビューション
 ✗ CloudFront Function
 ✗ Lambda 関数（3つ全て）
-✗ Step Functions ステートマシン
+✗ Lambda 関数（EC2管理用）
 ✗ API Gateway
 ✗ S3 バケット（管理コンソール用、MediaConvert 用、Config 用）
 ✗ Security Hub / GuardDuty / Inspector / Config / Access Analyzer

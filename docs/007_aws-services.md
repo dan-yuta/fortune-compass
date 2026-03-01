@@ -20,7 +20,7 @@
 | 10 | Amazon DynamoDB | データベース | Terraform ステートのロック管理 | < $1 |
 | 11 | AWS IAM | セキュリティ | ロール・ポリシー管理（EC2、CI/CD） | $0 |
 | 12 | AWS Lambda | コンピュート | EC2 ライフサイクル管理（start/stop/status/health-check/ECR refresh） | $0（無料枠内） |
-| 13 | AWS Step Functions | オーケストレーション | EC2 起動・停止ワークフロー（状態遷移管理） | $0（無料枠内） |
+| 13 | ~~AWS Step Functions~~ | ~~オーケストレーション~~ | **削除済み**: API Gateway → Lambda 直接呼び出しに統合 | — |
 | 14 | Amazon API Gateway | API | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
 | 15 | Amazon S3（管理コンソール） | ホスティング | 管理コンソール静的ウェブサイト | $0（無料枠内） |
 | 16 | AWS Systems Manager (SSM) | 管理 | EC2 へのリモートコマンド実行（ECR トークンリフレッシュ等） | $0 |
@@ -215,15 +215,9 @@
 
 ---
 
-### 2.13 AWS Step Functions
+### 2.13 ~~AWS Step Functions~~（削除済み）
 
-**概要**: サーバーレスのワークフローオーケストレーションサービス。複数の AWS サービスを順序立てて実行するステートマシンを構築できる。
-
-**本プロジェクトでの役割**:
-- **起動ワークフロー**: EC2 起動 → running 待機 → ヘルスチェック → ECR トークンリフレッシュ
-- **停止ワークフロー**: EC2 停止 → stopped 待機
-
-**コスト**: 無料枠（月間 4,000 状態遷移）の範囲内で運用。
+> **Note**: Step Functions は当初設計に含まれていたが、実際には API Gateway → Lambda 直接呼び出しで EC2 操作を実装しており、Step Functions は未使用だったため削除した。
 
 ---
 
@@ -234,7 +228,7 @@
 **本プロジェクトでの役割**:
 - 管理コンソールの REST API エンドポイント（`/prod/manage`）
 - API Key 認証で不正アクセスを防止
-- Lambda / Step Functions の呼び出しをプロキシ
+- Lambda の呼び出しをプロキシ
 
 **コスト**: 無料枠（月間 100万 API コール）の範囲内で運用。
 

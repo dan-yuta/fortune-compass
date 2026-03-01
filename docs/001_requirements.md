@@ -205,7 +205,6 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | CDN / HTTPS | Amazon CloudFront | - |
 | モニタリング | CloudWatch Logs | 14日保持 |
 | サーバーレス | AWS Lambda (Python 3.12) | EC2 管理用 |
-| ワークフロー | AWS Step Functions | EC2 起動・停止ワークフロー |
 | API 管理 | Amazon API Gateway | 管理コンソール REST API |
 
 ### 5.3 AWS サービス構成
@@ -218,7 +217,7 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | CloudFront | HTTPS終端 + CDN | ~$0（無料枠内） |
 | ECR | Docker イメージ保存（2リポジトリ） | ~$1 |
 | S3 + DynamoDB | Terraform ステート管理 | < $1 |
-| Lambda + Step Functions + API Gateway | EC2 管理コンソール | $0（無料枠内） |
+| Lambda + API Gateway | EC2 管理コンソール | $0（無料枠内） |
 | S3（管理コンソール） | 管理画面ホスティング | $0（無料枠内） |
 | MediaConvert | 動画変換（従量課金） | ~$0（変換時のみ） |
 | Security Hub / GuardDuty / Inspector / Config | セキュリティ監査 | ~$5〜10（無料枠終了後） |
@@ -319,11 +318,10 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 
 ### Phase 11: Management Console
 - [x] Lambda 関数（EC2 start/stop/status/health-check/ECR refresh）
-- [x] Step Functions（起動・停止ワークフロー）
 - [x] API Gateway REST API（API Key 認証）
 - [x] S3 管理コンソール静的ウェブサイト
 - [x] EC2 SSM Agent + ECR token refresh systemd サービス
-- [x] Terraform management モジュール（28 リソース追加）
+- [x] Terraform management モジュール
 
 ### Phase 12: AWS非コンピュート系サービス拡張
 - [x] CloudFront /admin パス（管理コンソール HTTPS 化 + URL 短縮）
@@ -348,7 +346,7 @@ AWS EC2 + k3s（軽量 Kubernetes）上で本番稼働中。
 | CI/CD | GitHub ActionsでのDockerビルド → ECRプッシュ → SSH + kubectl デプロイ（OIDC認証） |
 | AI連携 | Claude Vision APIの活用（手相画像解析） |
 | フロントエンド | Next.js App Router、Tailwind CSS v4、Framer Motion、PWA、i18n |
-| サーバーレス | Lambda + Step Functions + API Gateway による EC2 ライフサイクル管理 |
+| サーバーレス | Lambda + API Gateway による EC2 ライフサイクル管理 |
 | セキュリティ監査 | Security Hub / GuardDuty / Inspector / Config / Access Analyzer の有効化と運用 |
 | 動画変換 | MediaConvert + S3 + Lambda + EventBridge による自動変換パイプライン |
 | AI エージェント | Bedrock Agent + Action Group + OpenAPI schema による対話型 AI 構築 |

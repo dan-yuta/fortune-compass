@@ -39,7 +39,7 @@ module "ec2_k3s" {
   frontend_image   = "${module.ecr.repository_urls["frontend"]}:latest"
 }
 
-# --- Management (Lambda + Step Functions + API Gateway + S3) ---
+# --- Management (Lambda + API Gateway + S3) ---
 
 module "management" {
   source = "../../modules/management"

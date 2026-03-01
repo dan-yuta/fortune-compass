@@ -1,8 +1,7 @@
 """
 EC2 Management Lambda — Start / Stop / Status for k3s instance.
 
-Used by Step Functions to orchestrate EC2 start/stop workflows
-and by API Gateway for direct status queries.
+Called by API Gateway (proxy integration) from the management console.
 """
 
 import json
@@ -134,7 +133,7 @@ def handler(event, context):
         qs = event.get("queryStringParameters") or {}
         action = body.get("action", qs.get("action", "status"))
     else:
-        # Direct invocation (Step Functions)
+        # Direct invocation
         action = event.get("action", "status")
 
     actions = {

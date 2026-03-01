@@ -203,9 +203,7 @@ M5 結合 + 動作確認（20分）
 | タスク | 状態 | 備考 |
 |--------|------|------|
 | Lambda 関数作成（Python 3.12） | ✅ 完了 | EC2 start/stop/status/health-check/ecr-refresh |
-| Step Functions ステートマシン（start workflow） | ✅ 完了 | 起動→待機→ヘルスチェック→ECR refresh |
-| Step Functions ステートマシン（stop workflow） | ✅ 完了 | 停止→待機 |
-| API Gateway REST API | ✅ 完了 | API Key 認証、Lambda/Step Functions 連携 |
+| API Gateway REST API | ✅ 完了 | API Key 認証、Lambda 連携 |
 | S3 静的ウェブサイト（管理コンソール UI） | ✅ 完了 | HTML/CSS/JS |
 | ECR トークンリフレッシュ systemd サービス | ✅ 完了 | EC2 起動時に自動実行 |
 | SSM Agent 設定 | ✅ 完了 | Lambda からのリモートコマンド実行 |

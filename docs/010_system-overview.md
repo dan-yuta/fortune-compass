@@ -105,11 +105,8 @@
               │  │ :8080       │ :3000      │  │   └──────────┬────────────┘
               │  └─────────────┴───────────┘  │              │
               │  SSM Agent (リモートコマンド)   │   ┌──────────▼────────────┐
-              └──────────────┬────────────────┘   │  Step Functions       │
-                             │                     │  起動/停止ワークフロー │
-                             │                     └──────────┬────────────┘
-                             │                                │
-                             │        ┌───────────────────────▼──┐
+              └──────────────┬────────────────┘              │
+                             │                     ┌──────────▼────────────┐
                              │        │  Lambda (ec2_manager.py)  │
                              │        │  start / stop / status    │
                              │  ◄─────│  health_check / ecr_refresh│
@@ -155,24 +152,18 @@
 │     │ API Key 認証                                            │
 │     ▼                                                        │
 │  ┌─── 起動の場合 ──────────────────────────────────┐         │
-│  │ Step Functions (Start Workflow)                  │         │
-│  │   ① Lambda: EC2 起動コマンド送信                  │         │
-│  │   ② 60秒待機（EC2 起動待ち）                      │         │
-│  │   ③ Lambda: ステータス確認（running?）             │         │
-│  │      ├─ running → ④ へ                           │         │
-│  │      └─ まだ → ②に戻る（最大5回リトライ）          │         │
-│  │   ④ Lambda: ヘルスチェック（アプリ応答確認）        │         │
-│  │   ⑤ Lambda: ECR トークンリフレッシュ（SSM経由）    │         │
-│  │   ⑥ 完了                                         │         │
+│  │ Lambda (ec2_manager: action=start)              │         │
+│  │   ① EC2 起動コマンド送信                          │         │
+│  │   ② UI がポーリングでステータス確認（10秒間隔）     │         │
+│  │   ③ running 確認後、ヘルスチェック                 │         │
+│  │   ④ 完了                                         │         │
 │  └──────────────────────────────────────────────────┘         │
 │                                                               │
 │  ┌─── 停止の場合 ──────────────────────────────────┐         │
-│  │ Step Functions (Stop Workflow)                   │         │
-│  │   ① Lambda: EC2 停止コマンド送信                  │         │
-│  │   ② 30秒待機（EC2 停止待ち）                      │         │
-│  │   ③ Lambda: ステータス確認（stopped?）             │         │
-│  │      ├─ stopped → 完了                           │         │
-│  │      └─ まだ → ②に戻る（最大5回リトライ）          │         │
+│  │ Lambda (ec2_manager: action=stop)               │         │
+│  │   ① EC2 停止コマンド送信                          │         │
+│  │   ② UI がポーリングでステータス確認（5秒間隔）      │         │
+│  │   ③ stopped 確認後、完了                          │         │
 │  └──────────────────────────────────────────────────┘         │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -1104,8 +1095,7 @@ CloudFront → ブラウザ
 | 9 | DynamoDB | Terraform ステートロック | < $1 |
 | 10 | IAM | ロール・ポリシー管理 | $0 |
 | 11 | Lambda | EC2 ライフサイクル管理（管理コンソール） | $0（無料枠内） |
-| 12 | Step Functions | EC2 起動・停止ワークフロー | $0（無料枠内） |
-| 13 | API Gateway | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
+| 12 | API Gateway | 管理コンソール REST API（API Key 認証） | $0（無料枠内） |
 | 14 | S3（管理コンソール） | 管理コンソール静的ウェブサイト | $0（無料枠内） |
 | 15 | CloudFront Function | `/admin` パスリライト | $0 |
 | 16 | MediaConvert | 動画変換（MP4 + HLS） | 従量課金 |
@@ -1173,8 +1163,8 @@ infra/terraform/
 │   │
 │   ├── cloudfront/      # CloudFront Distribution + CF Function (3リソース)
 │   │
-│   ├── management/      # Lambda, Step Functions x2, API Gateway,
-│   │                    # S3, IAM Role/Policy 等 (28リソース)
+│   ├── management/      # Lambda, API Gateway,
+│   │                    # S3, IAM Role/Policy 等 (24リソース)
 │   │
 │   ├── mediaconvert/    # S3 x2, Lambda, IAM x2, EventBridge (12リソース)
 │   │
@@ -1198,14 +1188,13 @@ infra/terraform/
 EC2 を未使用時に停止してコストを削減するための管理コンソール。
 
 ```
-管理者 → S3 静的サイト → API Gateway (API Key) → Step Functions → Lambda → EC2
+管理者 → S3 静的サイト → API Gateway (API Key) → Lambda → EC2
 ```
 
 | コンポーネント | 役割 |
 |--------------|------|
 | Lambda (Python 3.12) | EC2 start/stop/status/health-check/ecr-refresh |
-| Step Functions x2 | 起動ワークフロー（起動→待機→ヘルスチェック→ECR refresh）/ 停止ワークフロー |
-| API Gateway | REST API + API Key 認証 |
+| API Gateway | REST API + API Key 認証（Lambda 直接呼び出し） |
 | S3 Static Website | 管理コンソール UI |
 | SSM Agent (EC2) | リモートコマンド実行 |
 
@@ -1426,7 +1415,7 @@ GitHub Actions                        AWS
 | `infra/terraform/modules/ec2-k3s/{main,variables,outputs}.tf` | EC2, SG, EIP, IAM, user_data |
 | `infra/terraform/modules/ec2-k3s/user_data.sh.tpl` | k3s インストール + K8s マニフェスト |
 | `infra/terraform/modules/cloudfront/{main,variables,outputs}.tf` | CloudFront Distribution + CF Function |
-| `infra/terraform/modules/management/{main,variables,outputs}.tf` | Lambda, Step Functions, API Gateway, S3 (管理コンソール) |
+| `infra/terraform/modules/management/{main,variables,outputs}.tf` | Lambda, API Gateway, S3 (管理コンソール) |
 | `infra/terraform/modules/management/lambda/ec2_manager.py` | EC2 起動/停止/ステータス Lambda |
 | `infra/terraform/modules/mediaconvert/{main,variables,outputs}.tf` | S3 x2, Lambda, IAM, EventBridge (動画変換) |
 | `infra/terraform/modules/mediaconvert/lambda/transcode_trigger.py` | S3 → MediaConvert ジョブ作成 Lambda |
